@@ -40,8 +40,12 @@ export function DebugOverlay({
 }: DebugOverlayProps) {
   const { fps, frameTime, capabilities } = debugInfo;
 
-  const toggle = (key: keyof Controls) => {
+  const toggleBool = (key: 'paused' | 'showGarden' | 'showBloom' | 'showGodrays' | 'showComposite') => {
     onControlsChange({ ...controls, [key]: !controls[key] });
+  };
+
+  const cycleTreatment = () => {
+    onControlsChange({ ...controls, treatment: controls.treatment === 0 ? 1 : 0 });
   };
 
   return (
@@ -53,14 +57,10 @@ export function DebugOverlay({
           {capabilities?.webgl2 ? 'yes' : 'no'}
         </span>
         {' | '}float rt{' '}
-        <span
-          style={{
-            color: capabilities?.floatRenderTarget ? '#6f6' : '#fa0',
-          }}
-        >
+        <span style={{ color: capabilities?.floatRenderTarget ? '#6f6' : '#fa0' }}>
           {capabilities?.floatRenderTarget ? 'yes' : 'no'}
         </span>
-        {' | '}tex type{' '}
+        {' | '}tex{' '}
         <span style={{ color: '#aef' }}>
           {capabilities?.textureType ?? '...'}
         </span>
@@ -74,29 +74,33 @@ export function DebugOverlay({
       {/* Toggles */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <label style={labelStyle}>
-          <input
-            type="checkbox"
-            checked={!controls.paused}
-            onChange={() => toggle('paused')}
-          />
+          <input type="checkbox" checked={!controls.paused} onChange={() => toggleBool('paused')} />
           play
         </label>
         <label style={labelStyle}>
-          <input
-            type="checkbox"
-            checked={controls.showSim}
-            onChange={() => toggle('showSim')}
-          />
-          pass A (sim)
+          <input type="checkbox" checked={controls.showGarden} onChange={() => toggleBool('showGarden')} />
+          garden
         </label>
         <label style={labelStyle}>
-          <input
-            type="checkbox"
-            checked={controls.showComposite}
-            onChange={() => toggle('showComposite')}
-          />
+          <input type="checkbox" checked={controls.showBloom} onChange={() => toggleBool('showBloom')} />
+          bloom
+        </label>
+        <label style={labelStyle}>
+          <input type="checkbox" checked={controls.showGodrays} onChange={() => toggleBool('showGodrays')} />
+          godrays
+        </label>
+        <label style={labelStyle}>
+          <input type="checkbox" checked={controls.showComposite} onChange={() => toggleBool('showComposite')} />
           composite
         </label>
+      </div>
+
+      {/* Treatment toggle */}
+      <div
+        style={{ marginTop: 6, cursor: 'pointer', color: '#9cf' }}
+        onClick={cycleTreatment}
+      >
+        treatment: {controls.treatment === 0 ? 'cinematic' : 'clean'}
       </div>
     </div>
   );

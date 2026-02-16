@@ -13,8 +13,11 @@ export interface DebugInfo {
 
 export interface Controls {
   paused: boolean;
-  showSim: boolean;
+  showGarden: boolean;
+  showBloom: boolean;
+  showGodrays: boolean;
   showComposite: boolean;
+  treatment: number; // 0 cinematic, 1 clean
 }
 
 const INITIAL_DEBUG: DebugInfo = {
@@ -25,8 +28,11 @@ const INITIAL_DEBUG: DebugInfo = {
 
 const INITIAL_CONTROLS: Controls = {
   paused: false,
-  showSim: true,
+  showGarden: true,
+  showBloom: true,
+  showGodrays: true,
   showComposite: true,
+  treatment: 0,
 };
 
 export default function Page() {
