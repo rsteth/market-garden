@@ -1,4 +1,4 @@
-import { extractEnvironment, type MarketEnvironment } from '../marketData';
+import { extractEnvironment } from '../marketData';
 
 /** Build a 64-float data buffer with specific meta-row values. */
 function makeData(overrides: {

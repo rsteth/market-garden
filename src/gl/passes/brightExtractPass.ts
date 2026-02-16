@@ -3,9 +3,7 @@
  */
 
 import type REGL from 'regl';
-// @ts-ignore
 import fullscreenVert from '../shaders/fullscreen.vert';
-// @ts-ignore
 import brightFrag from '../shaders/brightExtract.frag';
 
 type Draw = (props: Record<string, unknown>) => void;
@@ -35,7 +33,7 @@ export function createBrightExtractPass(regl: REGL.Regl) {
 
   return {
     draw(p: BrightExtractDrawProps) {
-      draw(p as any);
+      draw(p as unknown as Record<string, unknown>);
     },
   };
 }

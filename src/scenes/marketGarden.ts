@@ -11,7 +11,6 @@
 
 import type REGL from 'regl';
 import type { RenderResources } from '@/gl/passes/types';
-import type { UniformState } from '@/gl/uniformBus';
 import type { Scene } from './types';
 import type { MarketEnvironment } from '@/gl/marketData';
 
@@ -58,7 +57,6 @@ export function createMarketGardenScene(): Scene {
 
   // resources handle
   let res: RenderResources;
-  let reglRef: REGL.Regl;
 
   // market data
   let rawData: Float32Array | null = null;
@@ -81,7 +79,6 @@ export function createMarketGardenScene(): Scene {
     passNames: ['garden', 'bloom', 'godrays', 'composite'],
 
     init(regl, resources) {
-      reglRef = regl;
       res = resources;
 
       // ---- mesh + instances ----

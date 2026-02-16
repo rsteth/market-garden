@@ -1,5 +1,5 @@
 import type REGL from 'regl';
-import type { RenderResources, Pass } from './types';
+import type { Pass } from './types';
 import type { UniformState } from '../uniformBus';
 
 export function createClearPass(): Pass {

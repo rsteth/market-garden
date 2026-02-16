@@ -1,7 +1,5 @@
-import type REGL from 'regl';
 import type { RenderResources, Pass } from './types';
 import type { UniformState } from '../uniformBus';
-// @ts-ignore asset/source import
 import fullscreenVert from '../shaders/fullscreen.vert';
 
 const BLIT_FRAG = `

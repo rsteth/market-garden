@@ -34,7 +34,7 @@ export function uploadMarketTexture(
 ): void {
   // Always upload as float — WebGL2 can sample float textures without
   // EXT_color_buffer_float; that ext is only needed for *rendering* to them.
-  (texture as any)({
+  (texture as unknown as (opts: Record<string, unknown>) => void)({
     width: 2,
     height: 8,
     data,

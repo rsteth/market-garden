@@ -3,9 +3,7 @@
  */
 
 import type REGL from 'regl';
-// @ts-ignore
 import fullscreenVert from '../shaders/fullscreen.vert';
-// @ts-ignore
 import godraysFrag from '../shaders/godrays.frag';
 
 type Draw = (props: Record<string, unknown>) => void;
@@ -37,7 +35,7 @@ export function createGodraysPass(regl: REGL.Regl) {
 
   return {
     draw(p: GodraysDrawProps) {
-      draw(p as any);
+      draw(p as unknown as Record<string, unknown>);
     },
   };
 }

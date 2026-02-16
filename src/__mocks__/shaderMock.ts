@@ -1,1 +1,2 @@
-export default 'mock-shader-source';
+const shaderMock = 'mock-shader-source';
+export default shaderMock;

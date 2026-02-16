@@ -3,9 +3,7 @@
  */
 
 import type REGL from 'regl';
-// @ts-ignore
 import fullscreenVert from '../shaders/fullscreen.vert';
-// @ts-ignore
 import compositeFrag from '../shaders/gardenComposite.frag';
 
 type Draw = (props: Record<string, unknown>) => void;
@@ -43,7 +41,7 @@ export function createGardenCompositePass(regl: REGL.Regl) {
 
   return {
     draw(p: GardenCompositeDrawProps) {
-      draw(p as any);
+      draw(p as unknown as Record<string, unknown>);
     },
   };
 }

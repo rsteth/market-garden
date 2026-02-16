@@ -5,9 +5,7 @@
  */
 
 import type REGL from 'regl';
-// @ts-ignore
 import fullscreenVert from '../shaders/fullscreen.vert';
-// @ts-ignore
 import bloomFrag from '../shaders/bloomBlur.frag';
 
 type Draw = (props: Record<string, unknown>) => void;

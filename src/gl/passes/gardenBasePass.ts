@@ -5,12 +5,8 @@
 import type REGL from 'regl';
 import type { FlowerMesh } from '../meshFlower';
 import type { InstanceData } from '../gardenInstances';
-// @ts-ignore
 import gardenVert from '../shaders/gardenBase.vert';
-// @ts-ignore
 import gardenFrag from '../shaders/gardenBase.frag';
-// @ts-ignore
-import fullscreenVert from '../shaders/fullscreen.vert';
 
 type Draw = (props: Record<string, unknown>) => void;
 
@@ -119,8 +115,8 @@ export function createGardenBasePass(
         depth: 1,
         framebuffer: p.framebuffer,
       });
-      drawGround(p as any);
-      drawFlowers(p as any);
+      drawGround(p as unknown as Record<string, unknown>);
+      drawFlowers(p as unknown as Record<string, unknown>);
     },
   };
 }

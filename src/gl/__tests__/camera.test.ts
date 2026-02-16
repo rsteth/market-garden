@@ -1,11 +1,6 @@
-import { perspective, lookAt, projectDirToScreen, type Mat4, type Vec3 } from '../camera';
+import { perspective, lookAt, projectDirToScreen, type Vec3 } from '../camera';
 
 // ---- helpers ----
-
-function mat4Col(m: Mat4, col: number): [number, number, number, number] {
-  const i = col * 4;
-  return [m[i], m[i + 1], m[i + 2], m[i + 3]];
-}
 
 function dot3(a: number[], b: number[]): number {
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];

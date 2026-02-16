@@ -1,6 +1,3 @@
-import type REGL from 'regl';
-import type { RenderResources } from '@/gl/passes/types';
-import type { UniformState } from '@/gl/uniformBus';
 import type { Scene } from './types';
 import { createSimPass } from '@/gl/passes/simPass';
 import { createCompositePass } from '@/gl/passes/compositePass';

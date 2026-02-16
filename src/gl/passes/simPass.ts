@@ -1,11 +1,7 @@
-import type REGL from 'regl';
 import type { RenderResources, Pass } from './types';
 import type { UniformState } from '../uniformBus';
-// @ts-ignore asset/source imports
 import fullscreenVert from '../shaders/fullscreen.vert';
-// @ts-ignore
 import commonGlsl from '../shaders/common.glsl';
-// @ts-ignore
 import simFrag from '../shaders/sim.frag';
 
 const FULLSCREEN_QUAD: [number, number][] = [
