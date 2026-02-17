@@ -7,6 +7,7 @@ import type { CapabilityPlan } from '@/gl/capabilities';
 import { initRegl } from '@/gl/createRegl';
 import { computeCanvasSize, applyCanvasSize } from '@/gl/resize';
 import { createPingPongFBO } from '@/gl/fbo';
+import { createFloatTexture } from '@/gl/renderTarget';
 import { createUniformBus } from '@/gl/uniformBus';
 import type { RenderResources } from '@/gl/passes/types';
 import { createMarketGardenScene } from '@/scenes/marketGarden';
@@ -49,21 +50,12 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
       applyCanvasSize(canvas, initialSize);
 
       // shared resources (pingPong kept for interface compat; garden uses its own FBOs)
-      const pingPong = createPingPongFBO(regl, initialSize.width, initialSize.height, capabilities);
+      const pingPong = createPingPongFBO(regl, gl, initialSize.width, initialSize.height);
 
       // data texture — starts as 2x8 zeros; the scene uploads real data on first fetch
-      const dataTexture = regl.texture({
-        width: 2,
-        height: 8,
-        data: new Float32Array(2 * 8 * 4),
-        type: 'float',
-        format: 'rgba',
-        min: 'nearest',
-        mag: 'nearest',
-        wrap: 'clamp',
-      });
+      const dataTexture = createFloatTexture(regl, gl, 2, 8, new Float32Array(2 * 8 * 4));
 
-      const resources: RenderResources = { pingPong, dataTexture, capabilities };
+      const resources: RenderResources = { gl, pingPong, dataTexture, capabilities };
 
       // ---- scene ----
       const scene = createMarketGardenScene();
@@ -179,7 +171,7 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
       cancelAnimationFrame(animationFrameId);
       cleanupInner?.();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   return <canvas ref={canvasRef} style={canvasStyle} />;
 }

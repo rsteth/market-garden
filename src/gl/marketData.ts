@@ -28,22 +28,25 @@ export async function fetchMarketData(url = '/api/market-data'): Promise<Float32
 
 // ---- upload ----
 
+/**
+ * Upload market data into a float texture via raw GL calls.
+ * This bypasses regl's extension check for `type: 'float'`.
+ */
 export function uploadMarketTexture(
+  gl: WebGL2RenderingContext,
   texture: REGL.Texture2D,
   data: Float32Array,
 ): void {
-  // Always upload as float — WebGL2 can sample float textures without
-  // EXT_color_buffer_float; that ext is only needed for *rendering* to them.
-  (texture as unknown as (opts: Record<string, unknown>) => void)({
-    width: 2,
-    height: 8,
-    data,
-    format: 'rgba',
-    type: 'float',
-    min: 'nearest',
-    mag: 'nearest',
-    wrap: 'clamp',
-  });
+  const glTex = (texture as unknown as { _texture: { texture: WebGLTexture } })
+    ._texture.texture;
+
+  gl.bindTexture(gl.TEXTURE_2D, glTex);
+  gl.texImage2D(
+    gl.TEXTURE_2D, 0, gl.RGBA32F,
+    2, 8, 0,
+    gl.RGBA, gl.FLOAT, data,
+  );
+  gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
 // ---- environment extraction ----

@@ -9,16 +9,17 @@
  *   E  composite    → screen    (base + bloom + rays + fog + grade)
  */
 
-import type REGL from 'regl';
 import type { RenderResources } from '@/gl/passes/types';
 import type { Scene } from './types';
 import type { MarketEnvironment } from '@/gl/marketData';
+import type { RenderTarget } from '@/gl/renderTarget';
 
 import { perspective, lookAt, projectDirToScreen } from '@/gl/camera';
 import type { Mat4, Vec3 } from '@/gl/camera';
 import { generateFlowerMesh } from '@/gl/meshFlower';
 import { generateInstances } from '@/gl/gardenInstances';
 import { fetchMarketData, uploadMarketTexture, extractEnvironment } from '@/gl/marketData';
+import { createRenderTarget } from '@/gl/renderTarget';
 
 import { createGardenBasePass } from '@/gl/passes/gardenBasePass';
 import { createBrightExtractPass } from '@/gl/passes/brightExtractPass';
@@ -45,11 +46,11 @@ export function createMarketGardenScene(): Scene {
   let bloomPass:     ReturnType<typeof createBloomPass>;
   let compositePass: ReturnType<typeof createGardenCompositePass>;
 
-  // FBOs
-  let fboBase:  REGL.Framebuffer2D;
-  let fboHalfA: REGL.Framebuffer2D;
-  let fboHalfB: REGL.Framebuffer2D;
-  let fboHalfC: REGL.Framebuffer2D;
+  // Render targets
+  let rtBase:  RenderTarget;
+  let rtHalfA: RenderTarget;
+  let rtHalfB: RenderTarget;
+  let rtHalfC: RenderTarget;
 
   // camera matrices
   let projMatrix: Mat4;
@@ -92,24 +93,15 @@ export function createMarketGardenScene(): Scene {
       bloomPass     = createBloomPass(regl);
       compositePass = createGardenCompositePass(regl);
 
-      // ---- FBOs ----
+      // ---- render targets ----
       const w = 1;
       const h = 1; // will resize on first frame
-      const texType = resources.capabilities.textureType as REGL.TextureDataType;
+      const { gl } = resources;
 
-      fboBase = regl.framebuffer({
-        width: w, height: h,
-        color: regl.texture({ width: w, height: h, type: texType, format: 'rgba', min: 'linear', mag: 'linear', wrap: 'clamp' }),
-        depth: true,
-      });
-      const makeHalf = () => regl.framebuffer({
-        width: w, height: h,
-        color: regl.texture({ width: w, height: h, type: texType, format: 'rgba', min: 'linear', mag: 'linear', wrap: 'clamp' }),
-        depthStencil: false,
-      });
-      fboHalfA = makeHalf();
-      fboHalfB = makeHalf();
-      fboHalfC = makeHalf();
+      rtBase  = createRenderTarget(regl, gl, w, h, { depth: true });
+      rtHalfA = createRenderTarget(regl, gl, w, h);
+      rtHalfB = createRenderTarget(regl, gl, w, h);
+      rtHalfC = createRenderTarget(regl, gl, w, h);
 
       // camera (view is static; projection updated on resize)
       viewMatrix = lookAt(EYE, CENTER, UP);
@@ -124,10 +116,10 @@ export function createMarketGardenScene(): Scene {
         halfW = Math.max(1, Math.floor(w / 2));
         halfH = Math.max(1, Math.floor(h / 2));
 
-        fboBase.resize(w, h);
-        fboHalfA.resize(halfW, halfH);
-        fboHalfB.resize(halfW, halfH);
-        fboHalfC.resize(halfW, halfH);
+        rtBase.resize(w, h);
+        rtHalfA.resize(halfW, halfH);
+        rtHalfB.resize(halfW, halfH);
+        rtHalfC.resize(halfW, halfH);
 
         projMatrix = perspective(FOV, w / h, NEAR, FAR);
       }
@@ -143,7 +135,7 @@ export function createMarketGardenScene(): Scene {
         fetchMarketData()
           .then((data) => {
             rawData = data;
-            uploadMarketTexture(res.dataTexture, data);
+            uploadMarketTexture(res.gl, res.dataTexture, data);
           })
           .catch(() => {})
           .finally(() => { fetchInFlight = false; });
@@ -161,7 +153,7 @@ export function createMarketGardenScene(): Scene {
       // A — base garden render
       if (activePasses.has('garden')) {
         basePass.draw({
-          framebuffer: fboBase,
+          framebuffer: rtBase.fbo,
           projection: projMatrix,
           view: viewMatrix,
           dataTexture: res.dataTexture,
@@ -179,8 +171,8 @@ export function createMarketGardenScene(): Scene {
 
       // B — bright extract
       brightPass.draw({
-        source: fboBase,
-        framebuffer: fboHalfA,
+        source: rtBase.fbo,
+        framebuffer: rtHalfA.fbo,
         auroraEnergy: env.auroraEnergy,
         fogAmount: env.fogAmount,
       });
@@ -188,8 +180,8 @@ export function createMarketGardenScene(): Scene {
       // C — godrays (from bright, before bloom blurs it)
       if (activePasses.has('godrays')) {
         godraysPass.draw({
-          source: fboHalfA,
-          framebuffer: fboHalfB,
+          source: rtHalfA.fbo,
+          framebuffer: rtHalfB.fbo,
           lightScreenPos: sunScreen,
           auroraEnergy: env.auroraEnergy,
           sunHeight: env.sunHeight,
@@ -199,9 +191,9 @@ export function createMarketGardenScene(): Scene {
       // D — bloom (H+V blur of bright extract)
       if (activePasses.has('bloom')) {
         bloomPass.draw({
-          source: fboHalfA,
-          temp: fboHalfC,
-          output: fboHalfA, // write back into A (bright is consumed)
+          source: rtHalfA.fbo,
+          temp: rtHalfC.fbo,
+          output: rtHalfA.fbo, // write back into A (bright is consumed)
           halfWidth: halfW,
           halfHeight: halfH,
           fogAmount: env.fogAmount,
@@ -211,9 +203,9 @@ export function createMarketGardenScene(): Scene {
       // E — composite to screen
       if (activePasses.has('composite')) {
         compositePass.draw({
-          base: fboBase,
-          bloom: fboHalfA,
-          rays: fboHalfB,
+          base: rtBase.fbo,
+          bloom: rtHalfA.fbo,
+          rays: rtHalfB.fbo,
           fogAmount: env.fogAmount,
           sunHeight: env.sunHeight,
           auroraEnergy: env.auroraEnergy,
@@ -224,10 +216,10 @@ export function createMarketGardenScene(): Scene {
     },
 
     destroy() {
-      fboBase.destroy();
-      fboHalfA.destroy();
-      fboHalfB.destroy();
-      fboHalfC.destroy();
+      rtBase.destroy();
+      rtHalfA.destroy();
+      rtHalfB.destroy();
+      rtHalfC.destroy();
     },
   };
 }

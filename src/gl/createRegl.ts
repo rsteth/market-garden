@@ -9,6 +9,9 @@ export interface ReglSetup {
 /**
  * Create a regl instance backed by a WebGL2 context.
  * Uses dynamic import so the regl module is never evaluated during SSR.
+ *
+ * Float textures are handled via the renderTarget module's raw-GL reinit
+ * trick, so we do NOT require any float extensions through regl.
  */
 export async function initRegl(
   canvas: HTMLCanvasElement,
@@ -22,13 +25,37 @@ export async function initRegl(
     );
   }
 
+  // Pre-warm extensions so the browser caches them before regl probes
+  gl.getExtension('EXT_color_buffer_float');
+  gl.getExtension('EXT_color_buffer_half_float');
+  gl.getExtension('OES_texture_float_linear');
+  gl.getExtension('OES_texture_half_float_linear');
+
+  // Shim ANGLE_instanced_arrays for regl on WebGL2.
+  // WebGL2 has instancing natively, but regl gates on this extension.
+  const origGetExt = gl.getExtension.bind(gl);
+  gl.getExtension = function (name: string) {
+    if (name.toLowerCase() === 'angle_instanced_arrays') {
+      return {
+        drawArraysInstancedANGLE: gl.drawArraysInstanced.bind(gl),
+        drawElementsInstancedANGLE: gl.drawElementsInstanced.bind(gl),
+        vertexAttribDivisorANGLE: gl.vertexAttribDivisor.bind(gl),
+        VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE: 0x88fe,
+      };
+    }
+    return origGetExt(name);
+  } as typeof gl.getExtension;
+
   const regl = createREGL({
-    canvas,
     gl,
     optionalExtensions: [
+      'ANGLE_instanced_arrays',
+      'OES_texture_float',
+      'OES_texture_half_float',
       'EXT_color_buffer_float',
-      'OES_texture_float_linear',
       'EXT_color_buffer_half_float',
+      'OES_texture_float_linear',
+      'OES_texture_half_float_linear',
     ],
   });
 

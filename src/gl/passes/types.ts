@@ -5,8 +5,9 @@ import type { UniformState } from '../uniformBus';
 
 /** GPU resources shared across all passes in a scene. */
 export interface RenderResources {
+  gl: WebGL2RenderingContext;
   pingPong: PingPongFBO;
-  /** Placeholder data texture — currently 2x2, will become market-data texture. */
+  /** Data texture — 2x8 RGBA32F for market data. */
   dataTexture: REGL.Texture2D;
   capabilities: CapabilityPlan;
 }
