@@ -10,6 +10,36 @@ npm run dev     # http://localhost:3000
 npm run build   # production build
 ```
 
+## Local environment variables
+
+Create a local `.env` or `.env.local` with:
+
+```bash
+MARKET_TEXTURE_UPSTREAM_URL=https://finance-api-alb-250195562.us-west-2.elb.amazonaws.com/market/texture
+MARKET_TEXTURE_API_TOKEN=<your bearer token>
+MARKET_TEXTURE_API_KEY=<optional api key>
+```
+
+## GitHub Pages CI/CD + environment secrets
+
+This repo deploys through `.github/workflows/deploy-pages.yml` and expects a GitHub
+**Environment** named:
+
+- `github-pages`
+
+Add these environment secrets under **Settings → Environments → github-pages → Secrets**:
+
+- `MARKET_TEXTURE_UPSTREAM_URL`
+- `MARKET_TEXTURE_API_TOKEN`
+- `MARKET_TEXTURE_API_KEY` (optional)
+
+At build time, CI fetches the market texture with those secrets and writes:
+
+- `public/market-texture.bin`
+- `public/market-texture-meta.json`
+
+The static site is then exported and published to GitHub Pages.
+
 ## Project structure
 
 ```

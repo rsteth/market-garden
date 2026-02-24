@@ -136,8 +136,13 @@ export function createMarketGardenScene(): Scene {
           .then((data) => {
             rawData = data;
             uploadMarketTexture(res.gl, res.dataTexture, data);
+            console.info('[market-data] Connected and updated market texture', {
+              floats: data.length,
+            });
           })
-          .catch(() => {})
+          .catch((error: unknown) => {
+            console.error('[market-data] Failed to connect to market texture endpoint', error);
+          })
           .finally(() => { fetchInFlight = false; });
       }
 

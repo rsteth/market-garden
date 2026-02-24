@@ -52,8 +52,8 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
       // shared resources (pingPong kept for interface compat; garden uses its own FBOs)
       const pingPong = createPingPongFBO(regl, gl, initialSize.width, initialSize.height);
 
-      // data texture — starts as 2x8 zeros; the scene uploads real data on first fetch
-      const dataTexture = createFloatTexture(regl, gl, 2, 8, new Float32Array(2 * 8 * 4));
+      // data texture — starts as 4x8 zeros; the scene uploads real data on first fetch
+      const dataTexture = createFloatTexture(regl, gl, 4, 8, new Float32Array(4 * 8 * 4));
 
       const resources: RenderResources = { gl, pingPong, dataTexture, capabilities };
 

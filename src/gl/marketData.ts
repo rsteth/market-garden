@@ -1,5 +1,5 @@
 /**
- * Market data texture: fetch binary blob, upload as 2x8 RGBA32F,
+ * Market data texture: fetch binary blob, upload as 4x8 RGBA32F,
  * and extract global environment signals.
  */
 
@@ -20,8 +20,22 @@ export interface MarketEnvironment {
 
 // ---- fetch ----
 
-export async function fetchMarketData(url = '/api/market-data'): Promise<Float32Array> {
+export async function fetchMarketData(
+  url = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/market-texture.bin`,
+): Promise<Float32Array> {
   const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Market texture request failed: ${res.status} ${res.statusText}`);
+  }
+
+  const width = Number(res.headers.get('X-MarketTex-Width') ?? '4');
+  const height = Number(res.headers.get('X-MarketTex-Height') ?? '8');
+  const format = res.headers.get('X-MarketTex-Format') ?? 'RGBA32F';
+
+  if (width !== 4 || height !== 8 || format !== 'RGBA32F') {
+    throw new Error(`Unexpected market texture layout: ${width}x${height} ${format}`);
+  }
+
   const buf = await res.arrayBuffer();
   return new Float32Array(buf);
 }
@@ -43,7 +57,7 @@ export function uploadMarketTexture(
   gl.bindTexture(gl.TEXTURE_2D, glTex);
   gl.texImage2D(
     gl.TEXTURE_2D, 0, gl.RGBA32F,
-    2, 8, 0,
+    4, 8, 0,
     gl.RGBA, gl.FLOAT, data,
   );
   gl.bindTexture(gl.TEXTURE_2D, null);
@@ -55,8 +69,8 @@ export function extractEnvironment(
   data: Float32Array,
   nowUtcSeconds: number,
 ): MarketEnvironment {
-  // meta row = y=7, each row = 2 texels * 4 channels = 8 floats
-  const m = 7 * 8;
+  // meta row = y=7, each row = 4 texels * 4 channels = 16 floats
+  const m = 7 * 16;
   const vixLevel  = data[m + 0]; // [-1,1]
   const vixChange = data[m + 1];
   const spyRet    = data[m + 2];

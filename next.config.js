@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+const isStaticExport = process.env.STATIC_EXPORT === '1';
+
 const nextConfig = {
+  output: isStaticExport ? 'export' : undefined,
+  basePath,
+  assetPrefix: basePath || undefined,
   turbopack: {
     rules: {
       '*.glsl': {

@@ -1,94 +1,80 @@
 import { GET } from '../route';
 
 describe('GET /api/market-data', () => {
-  it('returns a 200 response', async () => {
+  const fetchMock = jest.fn();
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    (global as typeof globalThis & { fetch: typeof fetch }).fetch = fetchMock as unknown as typeof fetch;
+    delete process.env.MARKET_TEXTURE_API_TOKEN;
+    delete process.env.SERVICE_BEARER_TOKEN;
+  });
+
+  it('returns upstream binary payload and texture headers', async () => {
+    const payload = new Float32Array(4 * 8 * 4);
+    fetchMock.mockResolvedValue(new Response(payload.buffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'X-MarketTex-Width': '4',
+        'X-MarketTex-Height': '8',
+        'X-MarketTex-Format': 'RGBA32F',
+        'X-MarketTex-Tickers': 'A,B,C,D,E,F,G',
+      },
+    }));
+
     const res = await GET();
     expect(res.status).toBe(200);
-  });
-
-  it('sets Content-Type to application/octet-stream', async () => {
-    const res = await GET();
     expect(res.headers.get('Content-Type')).toBe('application/octet-stream');
-  });
-
-  it('sets Cache-Control to no-store', async () => {
-    const res = await GET();
     expect(res.headers.get('Cache-Control')).toBe('no-store');
+    expect(res.headers.get('X-MarketTex-Width')).toBe('4');
+    expect(res.headers.get('X-MarketTex-Height')).toBe('8');
+    expect(res.headers.get('X-MarketTex-Format')).toBe('RGBA32F');
+    expect(res.headers.get('X-MarketTex-Tickers')).toBe('A,B,C,D,E,F,G');
+
+    const buf = await res.arrayBuffer();
+    expect(buf.byteLength).toBe(512);
   });
 
-  it('returns exactly 256 bytes (64 float32s)', async () => {
-    const res = await GET();
-    const buf = await res.arrayBuffer();
-    expect(buf.byteLength).toBe(256);
+  it('adds bearer token when MARKET_TEXTURE_API_TOKEN is configured', async () => {
+    process.env.MARKET_TEXTURE_API_TOKEN = 'market-token';
+    fetchMock.mockResolvedValue(new Response(new Float32Array(128).buffer, { status: 200 }));
+
+    await GET();
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.get('Authorization')).toBe('Bearer market-token');
   });
 
-  it('body is a valid Float32Array', async () => {
-    const res = await GET();
-    const buf = await res.arrayBuffer();
-    const data = new Float32Array(buf);
-    expect(data.length).toBe(64);
-    // all values should be finite numbers
-    for (let i = 0; i < 64; i++) {
-      expect(Number.isFinite(data[i])).toBe(true);
-    }
+  it('does not set Authorization when no token env is provided', async () => {
+    fetchMock.mockResolvedValue(new Response(new Float32Array(128).buffer, { status: 200 }));
+
+    await GET();
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://finance-api-alb-250195562.us-west-2.elb.amazonaws.com/market/texture');
+    const headers = new Headers(init.headers);
+    expect(headers.get('Authorization')).toBeNull();
   });
 
-  // ---- meta row checks ----
+  it('returns 502 when upstream returns non-2xx', async () => {
+    fetchMock.mockResolvedValue(new Response('bad gateway', { status: 503 }));
 
-  it('has session open and close times in meta row', async () => {
     const res = await GET();
-    const buf = await res.arrayBuffer();
-    const data = new Float32Array(buf);
-    const m = 7 * 8;
-    const open = data[m + 4];
-    const close = data[m + 5];
-    // both should be positive unix timestamps
-    expect(open).toBeGreaterThan(0);
-    expect(close).toBeGreaterThan(0);
-    // close should be after open
-    expect(close).toBeGreaterThan(open);
+    expect(res.status).toBe(502);
+    await expect(res.json()).resolves.toEqual({
+      error: 'Failed to fetch market texture from upstream.',
+    });
   });
 
-  it('session times correspond to 13:30–20:00 UTC window', async () => {
-    const res = await GET();
-    const buf = await res.arrayBuffer();
-    const data = new Float32Array(buf);
-    const m = 7 * 8;
-    const open = data[m + 4];
-    const close = data[m + 5];
-    // duration should be 6.5 hours = 23400 seconds
-    // float32 precision on large UTC timestamps (~1.77e9) introduces ±128 rounding
-    expect(Math.abs(close - open - 23400)).toBeLessThan(256);
-  });
+  it('returns 502 when upstream throws', async () => {
+    fetchMock.mockRejectedValue(new Error('network down'));
 
-  it('instrument rows have values in expected ranges', async () => {
     const res = await GET();
-    const buf = await res.arrayBuffer();
-    const data = new Float32Array(buf);
-    for (let i = 0; i < 7; i++) {
-      const base = i * 8;
-      // rank values (cols 0-4) should be in [-1, 1]
-      for (let c = 0; c < 5; c++) {
-        expect(data[base + c]).toBeGreaterThanOrEqual(-1);
-        expect(data[base + c]).toBeLessThanOrEqual(1);
-      }
-      // abs_ret (col 5) and seed (col 6) should be in [0, 1]
-      expect(data[base + 5]).toBeGreaterThanOrEqual(0);
-      expect(data[base + 5]).toBeLessThanOrEqual(1);
-      expect(data[base + 6]).toBeGreaterThanOrEqual(0);
-      expect(data[base + 6]).toBeLessThanOrEqual(1);
-    }
-  });
-
-  it('meta row has plausible VIX/SPY/NDX norms', async () => {
-    const res = await GET();
-    const buf = await res.arrayBuffer();
-    const data = new Float32Array(buf);
-    const m = 7 * 8;
-    // hardcoded mock values
-    expect(data[m + 0]).toBeCloseTo(0.35);  // vix
-    expect(data[m + 1]).toBeCloseTo(0.15);  // vix chg
-    expect(data[m + 2]).toBeCloseTo(0.20);  // spy
-    expect(data[m + 3]).toBeCloseTo(0.45);  // ndx
+    expect(res.status).toBe(502);
+    await expect(res.json()).resolves.toEqual({
+      error: 'Market texture upstream unreachable.',
+    });
   });
 });

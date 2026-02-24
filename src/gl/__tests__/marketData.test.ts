@@ -1,12 +1,12 @@
 import { extractEnvironment } from '../marketData';
 
-/** Build a 64-float data buffer with specific meta-row values. */
+/** Build a 128-float data buffer with specific meta-row values. */
 function makeData(overrides: {
   vix?: number; vixChg?: number; spy?: number; ndx?: number;
   open?: number; close?: number;
 } = {}): Float32Array {
-  const d = new Float32Array(64);
-  const m = 7 * 8;
+  const d = new Float32Array(128);
+  const m = 7 * 16;
   d[m + 0] = overrides.vix   ?? 0;
   d[m + 1] = overrides.vixChg ?? 0;
   d[m + 2] = overrides.spy    ?? 0;
