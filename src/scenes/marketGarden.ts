@@ -171,6 +171,7 @@ export function createMarketGardenScene(): Scene {
     draw(state, activePasses) {
       const sunScreen = projectDirToScreen(env.sunDir, viewMatrix, projMatrix);
       const o = state.overrides;
+      const auroraEnergy = o.auroraEnergy?.active ? o.auroraEnergy.value : env.auroraEnergy;
 
       // A — base garden render
       if (activePasses.has('garden')) {
@@ -229,7 +230,7 @@ export function createMarketGardenScene(): Scene {
       brightPass.draw({
         source: rtBase.fbo,
         framebuffer: rtHalfA.fbo,
-        auroraEnergy: env.auroraEnergy,
+        auroraEnergy,
         fogAmount: env.fogAmount,
       });
 
@@ -239,7 +240,7 @@ export function createMarketGardenScene(): Scene {
           source: rtHalfA.fbo,
           framebuffer: rtHalfB.fbo,
           lightScreenPos: sunScreen,
-          auroraEnergy: env.auroraEnergy,
+          auroraEnergy,
           sunHeight: env.sunHeight,
         });
       }
@@ -264,7 +265,7 @@ export function createMarketGardenScene(): Scene {
           rays: rtHalfB.fbo,
           fogAmount: env.fogAmount,
           sunHeight: env.sunHeight,
-          auroraEnergy: env.auroraEnergy,
+          auroraEnergy,
           dayPhase: env.dayPhase,
           treatment,
         });

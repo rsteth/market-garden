@@ -11,7 +11,7 @@ const float DECAY    = 0.96;
 const float DENSITY  = 0.9;
 
 void main() {
-  vec2 delta = (uLightScreenPos - vUv) * (DENSITY / float(SAMPLES));
+  vec2 delta = vec2(0.0, (uLightScreenPos.y - vUv.y)) * (DENSITY / float(SAMPLES));
   vec2 uv    = vUv;
   vec3 accum = vec3(0.0);
   float weight = 1.0;

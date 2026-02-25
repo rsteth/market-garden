@@ -1,11 +1,12 @@
 'use client';
 
+import type { Dispatch, SetStateAction } from 'react';
 import type { DebugInfo, Controls } from '../../app/page';
 
 interface DebugOverlayProps {
   debugInfo: DebugInfo;
   controls: Controls;
-  onControlsChange: (next: Controls) => void;
+  onControlsChange: Dispatch<SetStateAction<Controls>>;
 }
 
 const overlayStyle: React.CSSProperties = {
@@ -98,37 +99,44 @@ export function DebugOverlay({
   const { fps, frameTime, capabilities } = debugInfo;
 
   const toggleBool = (key: 'paused' | 'showGarden' | 'showBloom' | 'showGodrays' | 'showComposite') => {
-    onControlsChange({ ...controls, [key]: !controls[key] });
+    onControlsChange((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const cycleTreatment = () => {
-    onControlsChange({ ...controls, treatment: controls.treatment === 0 ? 1 : 0 });
+    onControlsChange((prev) => ({ ...prev, treatment: prev.treatment === 0 ? 1 : 0 }));
   };
 
   const setOverrideActive = (key: keyof Controls['overrides'], active: boolean) => {
-    const entry = controls.overrides[key];
-    onControlsChange({
-      ...controls,
-      overrides: {
-        ...controls.overrides,
-        [key]: { ...entry, active },
-      },
+    onControlsChange((prev) => {
+      const entry = prev.overrides[key];
+      return {
+        ...prev,
+        overrides: {
+          ...prev.overrides,
+          [key]: { ...entry, active },
+        },
+      };
     });
   };
 
   const setOverrideValue = (key: keyof Controls['overrides'], value: number) => {
-    const entry = controls.overrides[key];
-    onControlsChange({
-      ...controls,
-      overrides: {
-        ...controls.overrides,
-        [key]: { ...entry, value },
-      },
+    onControlsChange((prev) => {
+      const entry = prev.overrides[key];
+      return {
+        ...prev,
+        overrides: {
+          ...prev.overrides,
+          [key]: { ...entry, value },
+        },
+      };
     });
   };
 
   const renderOverrideRow = (key: keyof Controls['overrides']) => {
     const ctrl = controls.overrides[key];
+    const isLive = ctrl.active && !controls.paused;
+    const statusText = !ctrl.active ? 'off' : (controls.paused ? 'paused' : 'live');
+    const statusColor = !ctrl.active ? '#666' : (controls.paused ? '#fa0' : '#6f6');
     return (
       <div key={key} style={{ display: 'flex', alignItems: 'center', marginBottom: 2 }}>
         <input
@@ -139,6 +147,18 @@ export function DebugOverlay({
         />
         <div style={{ flex: 1, fontSize: 10, color: ctrl.active ? '#fff' : '#666' }}>
           {OVERRIDE_LABELS[key]}
+        </div>
+        <div
+          style={{
+            width: 44,
+            fontSize: 9,
+            textTransform: 'uppercase',
+            letterSpacing: 0.4,
+            color: statusColor,
+            opacity: isLive ? 1 : 0.85,
+          }}
+        >
+          {statusText}
         </div>
         <input
           type="range"

@@ -85,7 +85,7 @@ export function extractEnvironment(
   const windStrength  = clamp01(vixLevel * 0.5 + 0.5);
   const gustiness     = clamp01(Math.abs(vixChange));
   const fogAmount     = clamp01(-spyRet * 0.5 + 0.5);
-  const auroraEnergy  = clamp01(Math.abs(ndxRet));
+  const auroraEnergy  = clamp01(Math.sqrt(Math.abs(ndxRet)));
 
   // sun cycle
   let dayPhase = 0.5;
