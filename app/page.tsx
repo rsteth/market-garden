@@ -27,7 +27,7 @@ export interface Controls {
     windStrength: OverrideControl;
     gustiness: OverrideControl;
     fogAmount: OverrideControl;
-    auroraEnergy: OverrideControl;
+    godraysIntensity: OverrideControl;
     dayPhase: OverrideControl;
     bloomTarget: OverrideControl;
     agitation: OverrideControl;
@@ -61,7 +61,7 @@ const INITIAL_CONTROLS: Controls = {
     windStrength: { active: false, value: 0.3 },
     gustiness:    { active: false, value: 0.1 },
     fogAmount:    { active: false, value: 0.2 },
-    auroraEnergy: { active: false, value: 0.3 },
+    godraysIntensity: { active: false, value: 0.3 },
     dayPhase:     { active: false, value: 0.5 },
     bloomTarget:  { active: false, value: 0.5 },
     agitation:    { active: false, value: 0.5 },

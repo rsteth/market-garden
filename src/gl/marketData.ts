@@ -12,7 +12,7 @@ export interface MarketEnvironment {
   windStrength: number;
   gustiness: number;
   fogAmount: number;
-  auroraEnergy: number;
+  godraysIntensity: number;
   dayPhase: number;
   sunHeight: number;
   sunDir: Vec3;
@@ -85,7 +85,7 @@ export function extractEnvironment(
   const windStrength  = clamp01(vixLevel * 0.5 + 0.5);
   const gustiness     = clamp01(Math.abs(vixChange));
   const fogAmount     = clamp01(-spyRet * 0.5 + 0.5);
-  const auroraEnergy  = clamp01(Math.sqrt(Math.abs(ndxRet)));
+  const godraysIntensity = clamp01(Math.sqrt(Math.abs(ndxRet)));
 
   // sun cycle
   let dayPhase = 0.5;
@@ -95,7 +95,7 @@ export function extractEnvironment(
   
   const { sunHeight, sunDir } = calculateSun(dayPhase);
 
-  return { windStrength, gustiness, fogAmount, auroraEnergy, dayPhase, sunHeight, sunDir };
+  return { windStrength, gustiness, fogAmount, godraysIntensity, dayPhase, sunHeight, sunDir };
 }
 
 export function calculateSun(dayPhase: number): { sunHeight: number; sunDir: Vec3 } {

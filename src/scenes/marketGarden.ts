@@ -63,7 +63,7 @@ export function createMarketGardenScene(): Scene {
   let rawData: Float32Array | null = null;
   let env: MarketEnvironment = {
     windStrength: 0.3, gustiness: 0.1, fogAmount: 0.2,
-    auroraEnergy: 0.3, dayPhase: 0.5, sunHeight: 1, sunDir: [0, 1, 0],
+    godraysIntensity: 0.3, dayPhase: 0.5, sunHeight: 1, sunDir: [0, 1, 0],
   };
   let treatment = 0;
   let lastFetchTime = 0;
@@ -157,7 +157,7 @@ export function createMarketGardenScene(): Scene {
         if (o.windStrength?.active) env.windStrength = o.windStrength.value;
         if (o.gustiness?.active)    env.gustiness    = o.gustiness.value;
         if (o.fogAmount?.active)    env.fogAmount    = o.fogAmount.value;
-        if (o.auroraEnergy?.active) env.auroraEnergy = o.auroraEnergy.value;
+        if (o.godraysIntensity?.active) env.godraysIntensity = o.godraysIntensity.value;
 
         if (o.dayPhase?.active) {
           env.dayPhase = o.dayPhase.value;
@@ -171,7 +171,7 @@ export function createMarketGardenScene(): Scene {
     draw(state, activePasses) {
       const sunScreen = projectDirToScreen(env.sunDir, viewMatrix, projMatrix);
       const o = state.overrides;
-      const auroraEnergy = o.auroraEnergy?.active ? o.auroraEnergy.value : env.auroraEnergy;
+      const godraysIntensity = o.godraysIntensity?.active ? o.godraysIntensity.value : env.godraysIntensity;
 
       // A — base garden render
       if (activePasses.has('garden')) {
@@ -230,7 +230,7 @@ export function createMarketGardenScene(): Scene {
       brightPass.draw({
         source: rtBase.fbo,
         framebuffer: rtHalfA.fbo,
-        auroraEnergy,
+        godraysIntensity,
         fogAmount: env.fogAmount,
       });
 
@@ -240,7 +240,7 @@ export function createMarketGardenScene(): Scene {
           source: rtHalfA.fbo,
           framebuffer: rtHalfB.fbo,
           lightScreenPos: sunScreen,
-          auroraEnergy,
+          godraysIntensity,
           sunHeight: env.sunHeight,
         });
       }
@@ -265,7 +265,7 @@ export function createMarketGardenScene(): Scene {
           rays: rtHalfB.fbo,
           fogAmount: env.fogAmount,
           sunHeight: env.sunHeight,
-          auroraEnergy,
+          godraysIntensity,
           dayPhase: env.dayPhase,
           treatment,
         });

@@ -49,7 +49,7 @@ const ENVIRONMENT_KEYS = [
   'windStrength',
   'gustiness',
   'fogAmount',
-  'auroraEnergy',
+  'godraysIntensity',
   'dayPhase',
 ] as const;
 
@@ -75,7 +75,7 @@ const OVERRIDE_LABELS: Record<keyof Controls['overrides'], string> = {
   windStrength: 'wind strength',
   gustiness: 'gustiness',
   fogAmount: 'fog amount',
-  auroraEnergy: 'aurora energy',
+  godraysIntensity: 'godrays intensity',
   dayPhase: 'day phase',
   bloomTarget: 'bloom target',
   agitation: 'agitation',

@@ -3,7 +3,7 @@ varying vec2 vUv;
 
 uniform sampler2D uBright;
 uniform vec2  uLightScreenPos;
-uniform float uAuroraEnergy;
+uniform float uGodraysIntensity;
 uniform float uSunHeight;
 
 const int   SAMPLES  = 48;
@@ -23,6 +23,6 @@ void main() {
     weight *= DECAY;
   }
 
-  float exposure = 0.12 * uAuroraEnergy * (0.3 + uSunHeight * 0.7);
+  float exposure = 0.12 * uGodraysIntensity * (0.3 + uSunHeight * 0.7);
   gl_FragColor = vec4(accum * exposure, 1.0);
 }

@@ -6,7 +6,7 @@ uniform sampler2D uBloom;
 uniform sampler2D uRays;
 uniform float uFogAmount;
 uniform float uSunHeight;
-uniform float uAuroraEnergy;
+uniform float uGodraysIntensity;
 uniform float uDayPhase;
 uniform int   uTreatment;    // 0 cinematic, 1 clean
 
@@ -17,8 +17,8 @@ void main() {
 
   // bloom intensity: cinematic is hazier
   float bloomI = (uTreatment == 0) ? 0.55 : 0.12;
-  // godrays intensity: cinematic + aurora-driven
-  float raysI  = (uTreatment == 0) ? 0.40 * uAuroraEnergy : 0.08 * uAuroraEnergy;
+  // godrays intensity: cinematic + godrays-driven
+  float raysI  = (uTreatment == 0) ? 0.40 * uGodraysIntensity : 0.08 * uGodraysIntensity;
 
   vec3 color = base + bloom * bloomI + rays * raysI;
 

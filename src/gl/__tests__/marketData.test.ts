@@ -23,7 +23,7 @@ describe('extractEnvironment', () => {
     // extreme inputs
     const data = makeData({ vix: 5, vixChg: -5, spy: -5, ndx: 5 });
     const env = extractEnvironment(data, 1500);
-    for (const key of ['windStrength', 'gustiness', 'fogAmount', 'auroraEnergy', 'dayPhase'] as const) {
+    for (const key of ['windStrength', 'gustiness', 'fogAmount', 'godraysIntensity', 'dayPhase'] as const) {
       expect(env[key]).toBeGreaterThanOrEqual(0);
       expect(env[key]).toBeLessThanOrEqual(1);
     }
@@ -52,10 +52,10 @@ describe('extractEnvironment', () => {
     expect(env.fogAmount).toBeLessThan(0.1);
   });
 
-  it('NDX magnitude drives auroraEnergy', () => {
+  it('NDX magnitude drives godraysIntensity', () => {
     const low  = extractEnvironment(makeData({ ndx: 0.1 }), 1500);
     const high = extractEnvironment(makeData({ ndx: 0.9 }), 1500);
-    expect(high.auroraEnergy).toBeGreaterThan(low.auroraEnergy);
+    expect(high.godraysIntensity).toBeGreaterThan(low.godraysIntensity);
   });
 
   // ---- sun cycle ----
