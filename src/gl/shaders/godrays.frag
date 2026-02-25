@@ -43,6 +43,8 @@ void main() {
     weight *= DECAY;
   }
 
+  float topPresence = smoothstep(0.05, 0.95, vUv.y);
+  float distanceFade = mix(0.08, 1.0, pow(topPresence, 1.2));
   float exposure = 0.8 * uGodraysIntensity;
-  gl_FragColor = vec4(rayColor * (accum * exposure), 1.0);
+  gl_FragColor = vec4(rayColor * (accum * exposure * distanceFade), 1.0);
 }
