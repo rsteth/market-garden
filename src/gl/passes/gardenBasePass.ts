@@ -10,29 +10,66 @@ import gardenFrag from '../shaders/gardenBase.frag';
 
 type Draw = (props: Record<string, unknown>) => void;
 
-const GROUND_VERT = `
+const BACKDROP_VERT = `
 precision highp float;
 attribute vec2 position;
-uniform mat4 uProjection;
-uniform mat4 uView;
-varying vec2 vWorldXZ;
+varying vec2 vUv;
 void main() {
-  float s = 50.0;
-  vec3 wp = vec3(position.x * s, 0.0, position.y * s);
-  vWorldXZ = wp.xz;
-  gl_Position = uProjection * uView * vec4(wp, 1.0);
+  vUv = position * 0.5 + 0.5;
+  gl_Position = vec4(position, 0.0, 1.0);
 }`;
 
-const GROUND_FRAG = `
+const BACKDROP_FRAG = `
 precision highp float;
-varying vec2 vWorldXZ;
+varying vec2 vUv;
+uniform float uDayPhase;
 uniform float uSunHeight;
 void main() {
-  float dist = length(vWorldXZ);
-  float fade = smoothstep(45.0, 20.0, dist);
-  vec3 c = mix(vec3(0.02, 0.025, 0.015), vec3(0.04, 0.06, 0.025), fade);
-  c *= 0.4 + uSunHeight * 0.6;
-  gl_FragColor = vec4(c, 0.0);
+  float phase = clamp(uDayPhase, 0.0, 1.0);
+  float midday = 1.0 - abs(phase * 2.0 - 1.0);
+  float morningRamp = smoothstep(0.0, 0.18, phase);
+  float eveningRamp = 1.0 - smoothstep(0.78, 1.0, phase);
+  float dayWindow = min(morningRamp, eveningRamp);
+
+  vec3 skyDawn = vec3(0.13, 0.10, 0.09);
+  vec3 skyNoon = vec3(0.18, 0.27, 0.43);
+  float sunLift = smoothstep(0.0, 0.75, uSunHeight);
+  float lowSun = 1.0 - smoothstep(0.12, 0.68, uSunHeight);
+  vec3 sunTintWarm = vec3(1.00, 0.58, 0.30);
+  vec3 sunTintNoon = vec3(0.90, 0.93, 0.98);
+  vec3 sunTint = mix(sunTintWarm, sunTintNoon, sunLift);
+  vec3 skyBase = mix(skyDawn, skyNoon, smoothstep(0.0, 1.0, midday));
+  float skyExposure = mix(0.28, 1.0, dayWindow);
+  skyBase *= mix(0.62, 0.95, sunLift) * skyExposure;
+  skyBase = mix(skyBase, skyBase * sunTint, 0.20 + lowSun * 0.34);
+
+  vec3 soilBrownDawn = vec3(0.070, 0.050, 0.036);
+  vec3 soilBrownNoon = vec3(0.068, 0.048, 0.031);
+  vec3 soilBrown = mix(soilBrownDawn, soilBrownNoon, midday);
+  vec3 groundGi = skyBase * mix(0.05, 0.10, sunLift);
+  vec3 groundBase = soilBrown + skyBase * 0.08;
+  vec3 groundColor = groundBase + groundGi * (1.0 - smoothstep(0.04, 0.78, vUv.y));
+  float middayGroundDarken = smoothstep(0.45, 1.0, midday);
+  groundColor *= 1.0 - middayGroundDarken * 0.22;
+
+  // Darken the very bottom (nearest ground) relative to mid screen.
+  float nearGround = 1.0 - smoothstep(0.0, 0.52, vUv.y);
+  float bottomCrush = 1.0 - smoothstep(0.0, 0.16, vUv.y);
+  groundColor *= 1.0 - nearGround * 0.30;
+  groundColor *= 1.0 - bottomCrush * 0.18;
+
+  // Push the implied horizon into the top quarter: mostly ground, then distant fade.
+  float distanceFade = smoothstep(0.74, 0.98, vUv.y);
+  vec3 farBlueDawn = vec3(0.20, 0.25, 0.34);
+  vec3 farBlueNoon = vec3(0.24, 0.37, 0.56);
+  vec3 distanceColor = mix(farBlueDawn, farBlueNoon, midday);
+  vec3 duskWarmHaze = vec3(0.12, 0.06, 0.03) * lowSun;
+  distanceColor += duskWarmHaze;
+  distanceColor += vec3(0.02, 0.03, 0.05) * smoothstep(0.82, 1.0, vUv.y);
+  distanceColor *= mix(0.68, 0.96, sunLift) * mix(0.40, 1.0, dayWindow);
+
+  vec3 color = mix(groundColor, distanceColor, distanceFade);
+  gl_FragColor = vec4(color, 0.0);
 }`;
 
 const QUAD: [number, number][] = [[-1,-1],[1,-1],[-1,1],[-1,1],[1,-1],[1,1]];
@@ -120,19 +157,18 @@ export function createGardenBasePass(
     blend: { enable: false },
   }) as unknown as Draw;
 
-  // ---- ground quad ----
-  const drawGround: Draw = regl({
-    vert: GROUND_VERT,
-    frag: GROUND_FRAG,
+  // ---- fullscreen backdrop (sky + implied ground GI) ----
+  const drawBackdrop: Draw = regl({
+    vert: BACKDROP_VERT,
+    frag: BACKDROP_FRAG,
     attributes: { position: QUAD },
     uniforms: {
-      uProjection: regl.prop('projection' as never),
-      uView:       regl.prop('view'       as never),
+      uDayPhase:   regl.prop('dayPhase'   as never),
       uSunHeight:  regl.prop('sunHeight'  as never),
     },
     framebuffer: regl.prop('framebuffer' as never),
     count: 6,
-    depth: { enable: true, mask: true },
+    depth: { enable: false, mask: false },
   }) as unknown as Draw;
 
   return {
@@ -143,7 +179,7 @@ export function createGardenBasePass(
         depth: 1,
         framebuffer: p.framebuffer,
       });
-      drawGround(p as unknown as Record<string, unknown>);
+      drawBackdrop(p as unknown as Record<string, unknown>);
       drawFlowers(p as unknown as Record<string, unknown>);
     },
   };
