@@ -50,6 +50,20 @@ export interface GardenBaseDrawProps {
   gustiness: number;
   fogAmount: number;
   dayPhase: number;
+  overrideBloomTargetActive: number;
+  overrideBloomTargetValue: number;
+  overrideAgitationActive: number;
+  overrideAgitationValue: number;
+  overrideMicroTwitchActive: number;
+  overrideMicroTwitchValue: number;
+  overrideColorSeedActive: number;
+  overrideColorSeedValue: number;
+  overrideSlowBiasActive: number;
+  overrideSlowBiasValue: number;
+  regionOverrideActiveA: [number, number, number, number];
+  regionOverrideActiveB: [number, number, number, number];
+  regionOverrideValueA: [number, number, number, number];
+  regionOverrideValueB: [number, number, number, number];
   resolution: [number, number];
 }
 
@@ -84,6 +98,20 @@ export function createGardenBasePass(
       uWindStrength:regl.prop('windStrength' as never),
       uGustiness:   regl.prop('gustiness'   as never),
       uDayPhase:    regl.prop('dayPhase'    as never),
+      uOverrideBloomTargetActive: regl.prop('overrideBloomTargetActive' as never),
+      uOverrideBloomTargetValue:  regl.prop('overrideBloomTargetValue'  as never),
+      uOverrideAgitationActive:   regl.prop('overrideAgitationActive'   as never),
+      uOverrideAgitationValue:    regl.prop('overrideAgitationValue'    as never),
+      uOverrideMicroTwitchActive: regl.prop('overrideMicroTwitchActive' as never),
+      uOverrideMicroTwitchValue:  regl.prop('overrideMicroTwitchValue'  as never),
+      uOverrideColorSeedActive:   regl.prop('overrideColorSeedActive'   as never),
+      uOverrideColorSeedValue:    regl.prop('overrideColorSeedValue'    as never),
+      uOverrideSlowBiasActive:    regl.prop('overrideSlowBiasActive'    as never),
+      uOverrideSlowBiasValue:     regl.prop('overrideSlowBiasValue'     as never),
+      uRegionOverrideActiveA:     regl.prop('regionOverrideActiveA'     as never),
+      uRegionOverrideActiveB:     regl.prop('regionOverrideActiveB'     as never),
+      uRegionOverrideValueA:      regl.prop('regionOverrideValueA'      as never),
+      uRegionOverrideValueB:      regl.prop('regionOverrideValueB'      as never),
       uCameraPos:   regl.prop('cameraPos'   as never),
     },
     framebuffer: regl.prop('framebuffer' as never),

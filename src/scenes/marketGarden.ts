@@ -18,7 +18,7 @@ import { perspective, lookAt, projectDirToScreen } from '@/gl/camera';
 import type { Mat4, Vec3 } from '@/gl/camera';
 import { generateFlowerMesh } from '@/gl/meshFlower';
 import { generateInstances } from '@/gl/gardenInstances';
-import { fetchMarketData, uploadMarketTexture, extractEnvironment } from '@/gl/marketData';
+import { fetchMarketData, uploadMarketTexture, extractEnvironment, calculateSun } from '@/gl/marketData';
 import { createRenderTarget } from '@/gl/renderTarget';
 
 import { createGardenBasePass } from '@/gl/passes/gardenBasePass';
@@ -150,10 +150,27 @@ export function createMarketGardenScene(): Scene {
       if (rawData) {
         env = extractEnvironment(rawData, state.nowUtc);
       }
+
+      // ---- apply overrides ----
+      if (state.overrides) {
+        const o = state.overrides;
+        if (o.windStrength?.active) env.windStrength = o.windStrength.value;
+        if (o.gustiness?.active)    env.gustiness    = o.gustiness.value;
+        if (o.fogAmount?.active)    env.fogAmount    = o.fogAmount.value;
+        if (o.auroraEnergy?.active) env.auroraEnergy = o.auroraEnergy.value;
+
+        if (o.dayPhase?.active) {
+          env.dayPhase = o.dayPhase.value;
+          const { sunHeight, sunDir } = calculateSun(env.dayPhase);
+          env.sunHeight = sunHeight;
+          env.sunDir = sunDir;
+        }
+      }
     },
 
     draw(state, activePasses) {
       const sunScreen = projectDirToScreen(env.sunDir, viewMatrix, projMatrix);
+      const o = state.overrides;
 
       // A — base garden render
       if (activePasses.has('garden')) {
@@ -170,6 +187,40 @@ export function createMarketGardenScene(): Scene {
           gustiness: env.gustiness,
           fogAmount: env.fogAmount,
           dayPhase: env.dayPhase,
+          overrideBloomTargetActive: o.bloomTarget?.active ? 1 : 0,
+          overrideBloomTargetValue: o.bloomTarget?.value ?? 0.5,
+          overrideAgitationActive: o.agitation?.active ? 1 : 0,
+          overrideAgitationValue: o.agitation?.value ?? 0.5,
+          overrideMicroTwitchActive: o.microTwitch?.active ? 1 : 0,
+          overrideMicroTwitchValue: o.microTwitch?.value ?? 0.5,
+          overrideColorSeedActive: o.colorSeed?.active ? 1 : 0,
+          overrideColorSeedValue: o.colorSeed?.value ?? 0.5,
+          overrideSlowBiasActive: o.slowBias?.active ? 1 : 0,
+          overrideSlowBiasValue: o.slowBias?.value ?? 0.5,
+          regionOverrideActiveA: [
+            o.region1Influence?.active ? 1 : 0,
+            o.region2Influence?.active ? 1 : 0,
+            o.region3Influence?.active ? 1 : 0,
+            o.region4Influence?.active ? 1 : 0,
+          ],
+          regionOverrideActiveB: [
+            o.region5Influence?.active ? 1 : 0,
+            o.region6Influence?.active ? 1 : 0,
+            o.region7Influence?.active ? 1 : 0,
+            0,
+          ],
+          regionOverrideValueA: [
+            o.region1Influence?.value ?? 1,
+            o.region2Influence?.value ?? 1,
+            o.region3Influence?.value ?? 1,
+            o.region4Influence?.value ?? 1,
+          ],
+          regionOverrideValueB: [
+            o.region5Influence?.value ?? 1,
+            o.region6Influence?.value ?? 1,
+            o.region7Influence?.value ?? 1,
+            1,
+          ],
           resolution: state.resolution,
         });
       }

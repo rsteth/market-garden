@@ -11,6 +11,11 @@ export interface DebugInfo {
   capabilities: CapabilityPlan | null;
 }
 
+export interface OverrideControl {
+  active: boolean;
+  value: number;
+}
+
 export interface Controls {
   paused: boolean;
   showGarden: boolean;
@@ -18,6 +23,25 @@ export interface Controls {
   showGodrays: boolean;
   showComposite: boolean;
   treatment: number; // 0 cinematic, 1 clean
+  overrides: {
+    windStrength: OverrideControl;
+    gustiness: OverrideControl;
+    fogAmount: OverrideControl;
+    auroraEnergy: OverrideControl;
+    dayPhase: OverrideControl;
+    bloomTarget: OverrideControl;
+    agitation: OverrideControl;
+    microTwitch: OverrideControl;
+    colorSeed: OverrideControl;
+    slowBias: OverrideControl;
+    region1Influence: OverrideControl;
+    region2Influence: OverrideControl;
+    region3Influence: OverrideControl;
+    region4Influence: OverrideControl;
+    region5Influence: OverrideControl;
+    region6Influence: OverrideControl;
+    region7Influence: OverrideControl;
+  };
 }
 
 const INITIAL_DEBUG: DebugInfo = {
@@ -33,6 +57,25 @@ const INITIAL_CONTROLS: Controls = {
   showGodrays: true,
   showComposite: true,
   treatment: 0,
+  overrides: {
+    windStrength: { active: false, value: 0.3 },
+    gustiness:    { active: false, value: 0.1 },
+    fogAmount:    { active: false, value: 0.2 },
+    auroraEnergy: { active: false, value: 0.3 },
+    dayPhase:     { active: false, value: 0.5 },
+    bloomTarget:  { active: false, value: 0.5 },
+    agitation:    { active: false, value: 0.5 },
+    microTwitch:  { active: false, value: 0.5 },
+    colorSeed:    { active: false, value: 0.5 },
+    slowBias:     { active: false, value: 0.5 },
+    region1Influence: { active: false, value: 1.0 },
+    region2Influence: { active: false, value: 1.0 },
+    region3Influence: { active: false, value: 1.0 },
+    region4Influence: { active: false, value: 1.0 },
+    region5Influence: { active: false, value: 1.0 },
+    region6Influence: { active: false, value: 1.0 },
+    region7Influence: { active: false, value: 1.0 },
+  },
 };
 
 export default function Page() {

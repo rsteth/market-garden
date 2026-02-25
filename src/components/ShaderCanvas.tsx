@@ -135,6 +135,7 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
           mouseDown: pointerDown ? 1 : 0,
           nowUtc: Date.now() / 1000,
           params: { treatment: ctrl.treatment },
+          overrides: ctrl.overrides,
         });
 
         const activePasses = new Set<string>();

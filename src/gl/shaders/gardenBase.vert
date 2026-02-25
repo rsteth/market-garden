@@ -23,6 +23,20 @@ uniform float uWindStrength;
 uniform float uGustiness;
 uniform float uDayPhase;
 uniform vec3  uCameraPos;
+uniform float uOverrideBloomTargetActive;
+uniform float uOverrideBloomTargetValue;
+uniform float uOverrideAgitationActive;
+uniform float uOverrideAgitationValue;
+uniform float uOverrideMicroTwitchActive;
+uniform float uOverrideMicroTwitchValue;
+uniform float uOverrideColorSeedActive;
+uniform float uOverrideColorSeedValue;
+uniform float uOverrideSlowBiasActive;
+uniform float uOverrideSlowBiasValue;
+uniform vec4  uRegionOverrideActiveA;
+uniform vec4  uRegionOverrideActiveB;
+uniform vec4  uRegionOverrideValueA;
+uniform vec4  uRegionOverrideValueB;
 
 // ---- varyings ----
 varying vec3  vColor;
@@ -70,6 +84,16 @@ vec3 hsv2rgb(vec3 c) {
   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
+float regionInfluence(int i) {
+  if (i == 0) return mix(1.0, uRegionOverrideValueA.x, uRegionOverrideActiveA.x);
+  if (i == 1) return mix(1.0, uRegionOverrideValueA.y, uRegionOverrideActiveA.y);
+  if (i == 2) return mix(1.0, uRegionOverrideValueA.z, uRegionOverrideActiveA.z);
+  if (i == 3) return mix(1.0, uRegionOverrideValueA.w, uRegionOverrideActiveA.w);
+  if (i == 4) return mix(1.0, uRegionOverrideValueB.x, uRegionOverrideActiveB.x);
+  if (i == 5) return mix(1.0, uRegionOverrideValueB.y, uRegionOverrideActiveB.y);
+  return mix(1.0, uRegionOverrideValueB.z, uRegionOverrideActiveB.z);
+}
+
 // ---------------------------------------------------------------
 void main() {
   vec3 pos  = aPosition;
@@ -88,6 +112,7 @@ void main() {
     vec2 diff = aInstancePos.xz - ctr;
     float w   = exp(-dot(diff, diff) / REGION_SIGMA2);
     w *= 0.8 + 0.4 * noise2d(aInstancePos.xz * 0.08 + float(i) * 13.7);
+    w *= max(0.0, regionInfluence(i));
     totalW += w;
 
     float texY = (float(i) + 0.5) / 8.0;
@@ -108,17 +133,23 @@ void main() {
   colorSeed   *= invW;
   slowBias    *= invW;
 
+  if (uOverrideBloomTargetActive > 0.5) bloomTarget = uOverrideBloomTargetValue;
+  if (uOverrideAgitationActive > 0.5) agitation = uOverrideAgitationValue;
+  if (uOverrideMicroTwitchActive > 0.5) microTwitch = uOverrideMicroTwitchValue * 2.0 - 1.0;
+  if (uOverrideColorSeedActive > 0.5) colorSeed = uOverrideColorSeedValue;
+  if (uOverrideSlowBiasActive > 0.5) slowBias = uOverrideSlowBiasValue;
+
   float seedVar = hash11(aInstanceSeed * 100.0);
 
   // ---- wind ----
   vec2 windSample = aInstancePos.xz * 0.15 + uTime * vec2(0.3, 0.2);
   float windNoise = noise2d(windSample);
   float windPhase = uTime * 1.8 + aInstancePos.x * 0.12 + aInstancePos.z * 0.09;
-  float windBendX = sin(windPhase) * uWindStrength + windNoise * uGustiness * 0.5;
-  float windBendZ = sin(windPhase * 0.7 + 2.3) * uWindStrength * 0.4;
+  float windBendX = sin(windPhase) * (uWindStrength * 2.1) + windNoise * (uGustiness * 1.3);
+  float windBendZ = sin(windPhase * 0.7 + 2.3) * (uWindStrength * 1.0) + windNoise * (uGustiness * 0.55);
 
   // stalk tip total offset
-  float tipBend = 0.35;
+  float tipBend = mix(0.08, 0.58, uWindStrength);
   vec2 tipOff = vec2(windBendX, windBendZ) * tipBend;
 
   // ---- deformation ----
@@ -128,7 +159,7 @@ void main() {
     pos.x += windBendX * bend;
     pos.z += windBendZ * bend;
     float twitch = sin(uTime * 9.0 + aInstanceSeed * 200.0)
-                 * abs(microTwitch) * 0.015 * aUAlong;
+                 * abs(microTwitch) * (0.003 + uGustiness * 0.02) * aUAlong;
     pos.x += twitch;
     norm.x += windBendX * aUAlong * 0.3;
     norm.z += windBendZ * aUAlong * 0.3;

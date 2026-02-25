@@ -92,6 +92,13 @@ export function extractEnvironment(
   if (closeUtc > openUtc) {
     dayPhase = clamp01((nowUtcSeconds - openUtc) / (closeUtc - openUtc));
   }
+  
+  const { sunHeight, sunDir } = calculateSun(dayPhase);
+
+  return { windStrength, gustiness, fogAmount, auroraEnergy, dayPhase, sunHeight, sunDir };
+}
+
+export function calculateSun(dayPhase: number): { sunHeight: number; sunDir: Vec3 } {
   const sunHeight = Math.sin(Math.PI * dayPhase);
 
   const maxAz = 1.2;
@@ -104,7 +111,7 @@ export function extractEnvironment(
   const len = Math.hypot(...rawDir);
   const sunDir: Vec3 = [rawDir[0] / len, rawDir[1] / len, rawDir[2] / len];
 
-  return { windStrength, gustiness, fogAmount, auroraEnergy, dayPhase, sunHeight, sunDir };
+  return { sunHeight, sunDir };
 }
 
 function clamp01(x: number): number {
