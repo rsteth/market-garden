@@ -47,7 +47,9 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
       const capabilities: CapabilityPlan = checkCapabilities(gl);
 
       const initialSize = computeCanvasSize(canvas);
-      applyCanvasSize(canvas, initialSize);
+      if (applyCanvasSize(canvas, initialSize)) {
+        regl.poll();
+      }
 
       // shared resources (pingPong kept for interface compat; garden uses its own FBOs)
       const pingPong = createPingPongFBO(regl, gl, initialSize.width, initialSize.height);
