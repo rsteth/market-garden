@@ -15,6 +15,7 @@ export interface GodraysDrawProps {
   lightScreenPos: [number, number];
   godraysIntensity: number;
   sunHeight: number;
+  dayPhase: number;
 }
 
 export function createGodraysPass(regl: REGL.Regl) {
@@ -27,6 +28,7 @@ export function createGodraysPass(regl: REGL.Regl) {
       uLightScreenPos:     regl.prop('lightScreenPos'     as never),
       uGodraysIntensity:   regl.prop('godraysIntensity'   as never),
       uSunHeight:          regl.prop('sunHeight'          as never),
+      uDayPhase:           regl.prop('dayPhase'           as never),
     },
     framebuffer: regl.prop('framebuffer' as never),
     count: 6,

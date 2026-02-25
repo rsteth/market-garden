@@ -242,6 +242,7 @@ export function createMarketGardenScene(): Scene {
           lightScreenPos: sunScreen,
           godraysIntensity,
           sunHeight: env.sunHeight,
+          dayPhase: env.dayPhase,
         });
       }
 
