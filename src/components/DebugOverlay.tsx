@@ -98,7 +98,9 @@ export function DebugOverlay({
 }: DebugOverlayProps) {
   const { fps, frameTime, capabilities } = debugInfo;
 
-  const toggleBool = (key: 'paused' | 'showGarden' | 'showBloom' | 'showGodrays' | 'showComposite') => {
+  const toggleBool = (
+    key: 'paused' | 'showGarden' | 'showBloom' | 'showGodrays' | 'showComposite' | 'showRegionHelpers',
+  ) => {
     onControlsChange((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -217,6 +219,14 @@ export function DebugOverlay({
         <label style={labelStyle}>
           <input type="checkbox" checked={controls.showComposite} onChange={() => toggleBool('showComposite')} />
           composite
+        </label>
+        <label style={labelStyle}>
+          <input
+            type="checkbox"
+            checked={controls.showRegionHelpers}
+            onChange={() => toggleBool('showRegionHelpers')}
+          />
+          region helpers
         </label>
       </div>
 

@@ -22,6 +22,7 @@ export interface Controls {
   showBloom: boolean;
   showGodrays: boolean;
   showComposite: boolean;
+  showRegionHelpers: boolean;
   treatment: number; // 0 cinematic, 1 clean
   overrides: {
     windStrength: OverrideControl;
@@ -56,6 +57,7 @@ const INITIAL_CONTROLS: Controls = {
   showBloom: true,
   showGodrays: true,
   showComposite: true,
+  showRegionHelpers: false,
   treatment: 0,
   overrides: {
     windStrength: { active: false, value: 0.3 },
@@ -81,13 +83,21 @@ const INITIAL_CONTROLS: Controls = {
 export default function Page() {
   const [debugInfo, setDebugInfo] = useState<DebugInfo>(INITIAL_DEBUG);
   const [controls, setControls] = useState<Controls>(INITIAL_CONTROLS);
+  const normalizedControls: Controls = {
+    ...INITIAL_CONTROLS,
+    ...controls,
+    overrides: {
+      ...INITIAL_CONTROLS.overrides,
+      ...controls.overrides,
+    },
+  };
 
   return (
     <>
-      <ShaderCanvas controls={controls} onDebugInfo={setDebugInfo} />
+      <ShaderCanvas controls={normalizedControls} onDebugInfo={setDebugInfo} />
       <DebugOverlay
         debugInfo={debugInfo}
-        controls={controls}
+        controls={normalizedControls}
         onControlsChange={setControls}
       />
     </>

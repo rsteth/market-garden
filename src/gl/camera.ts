@@ -72,3 +72,28 @@ export function projectDirToScreen(
 
   return [px / pw * 0.5 + 0.5, py / pw * 0.5 + 0.5];
 }
+
+/** Project a world-space point to normalised screen coords [0..1, 0..1]. */
+export function projectWorldToScreen(
+  point: Vec3,
+  view: Mat4,
+  proj: Mat4,
+): [number, number] | null {
+  // view transform (w = 1 for world-space points)
+  const vx = view[0] * point[0] + view[4] * point[1] + view[8] * point[2] + view[12];
+  const vy = view[1] * point[0] + view[5] * point[1] + view[9] * point[2] + view[13];
+  const vz = view[2] * point[0] + view[6] * point[1] + view[10] * point[2] + view[14];
+  const vw = view[3] * point[0] + view[7] * point[1] + view[11] * point[2] + view[15];
+
+  // projection
+  const px = proj[0] * vx + proj[4] * vy + proj[8] * vz + proj[12] * vw;
+  const py = proj[1] * vx + proj[5] * vy + proj[9] * vz + proj[13] * vw;
+  const pw = proj[3] * vx + proj[7] * vy + proj[11] * vz + proj[15] * vw;
+
+  if (pw <= 0) return null;
+
+  const sx = px / pw * 0.5 + 0.5;
+  const sy = py / pw * 0.5 + 0.5;
+  if (!Number.isFinite(sx) || !Number.isFinite(sy)) return null;
+  return [sx, sy];
+}
