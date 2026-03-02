@@ -49,8 +49,10 @@ void main() {
   vec3 groundGi = skyBase * mix(0.05, 0.10, sunLift);
   vec3 groundBase = soilBrown + skyBase * 0.08;
   vec3 groundColor = groundBase + groundGi * (1.0 - smoothstep(0.04, 0.78, vUv.y));
+  float nightFactor = 1.0 - max(dayWindow, sunLift);
+  groundColor *= 1.0 - nightFactor * 0.45;
   float middayGroundDarken = smoothstep(0.45, 1.0, midday);
-  groundColor *= 1.0 - middayGroundDarken * 0.22;
+  groundColor *= 1.0 - middayGroundDarken * 0.30;
 
   // Darken the very bottom (nearest ground) relative to mid screen.
   float nearGround = 1.0 - smoothstep(0.0, 0.52, vUv.y);
