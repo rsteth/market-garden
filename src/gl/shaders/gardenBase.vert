@@ -45,6 +45,7 @@ varying vec3  vWorldPos;
 varying float vGlowMask;
 varying float vStalkMask;
 varying float vPetalMask;
+varying float vBloomStage;
 
 // ---- constants ----
 const float PI = 3.14159265;
@@ -247,5 +248,6 @@ void main() {
   vGlowMask  = glow;
   vStalkMask = aPartId < 0.5 ? 1.0 : 0.0;
   vPetalMask = aPartId > 1.5 ? 1.0 : 0.0;
+  vBloomStage = bloomTarget;
   gl_Position = uProjection * uView * vec4(pos, 1.0);
 }

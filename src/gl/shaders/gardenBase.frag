@@ -6,6 +6,7 @@ varying vec3  vWorldPos;
 varying float vGlowMask;
 varying float vStalkMask;
 varying float vPetalMask;
+varying float vBloomStage;
 
 uniform vec3  uSunDir;
 uniform float uSunHeight;
@@ -48,8 +49,11 @@ void main() {
   // keep stalks from blowing out at noon; retain a warmer, more organic tone
   lit = mix(lit * vec3(0.86, 0.9, 0.74), lit, 1.0 - vStalkMask);
 
-  // subtle petal self-illumination for extra pop
-  float petalEmission = vPetalMask * (0.2 + 0.12 * vGlowMask);
+  // Dramatic bloom-dependent petal self-illumination:
+  // dim buds, strong lift near full bloom.
+  float bloom = 1.0 - clamp(vBloomStage, 0.0, 1.0);
+  float bloomLift = pow(bloom, 2.3);
+  float petalEmission = vPetalMask * (0.03 + 0.78 * bloomLift + 0.20 * vGlowMask * bloom);
   lit += vColor * petalEmission;
 
   gl_FragColor = vec4(lit, vGlowMask);
