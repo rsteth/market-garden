@@ -74,6 +74,61 @@ void main() {
   gl_FragColor = vec4(color, 0.0);
 }`;
 
+const REGION_HELPER_VERT = `
+precision highp float;
+attribute float aRegionIndex;
+uniform mat4 uProjection;
+uniform mat4 uView;
+uniform float uTime;
+varying float vRegionIndex;
+
+const float PI = 3.141592653589793;
+
+vec2 getRegionCenter(int i) {
+  float angle = float(i) * (2.0 * PI / 7.0) + 0.3;
+  float radius = (11.0 + 2.0 * sin(float(i) * 1.7)) * 1.2;
+  return vec2(cos(angle), sin(angle)) * radius;
+}
+
+void main() {
+  int i = int(aRegionIndex + 0.5);
+  vec2 ctr = getRegionCenter(i);
+  float hover = 1.25 + 0.18 * sin(uTime * 1.6 + aRegionIndex * 1.7);
+  vec4 clip = uProjection * uView * vec4(ctr.x, hover, ctr.y, 1.0);
+  gl_Position = clip;
+  gl_PointSize = 30.0;
+  vRegionIndex = aRegionIndex;
+}`;
+
+const REGION_HELPER_FRAG = `
+precision highp float;
+uniform float uShowRegionHelpers;
+varying float vRegionIndex;
+
+vec3 hsv2rgb(vec3 c) {
+  vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main() {
+  if (uShowRegionHelpers < 0.5) discard;
+
+  vec2 uv = gl_PointCoord * 2.0 - 1.0;
+  float r = length(uv);
+  if (r > 1.0) discard;
+
+  float ring = smoothstep(0.96, 0.54, r);
+  float core = smoothstep(0.44, 0.0, r);
+  float hue = fract((vRegionIndex + 1.0) / 7.0 + 0.08);
+  vec3 ringColor = hsv2rgb(vec3(hue, 0.92, 1.0));
+  vec3 coreColor = vec3(1.0, 1.0, 1.0);
+  vec3 color = mix(ringColor, coreColor, core * 0.75);
+  float glow = smoothstep(1.0, 0.20, r);
+  float alpha = max(max(ring * 0.92, core), glow * 0.34);
+  gl_FragColor = vec4(color, alpha);
+}`;
+
 const QUAD: [number, number][] = [[-1,-1],[1,-1],[-1,1],[-1,1],[1,-1],[1,1]];
 
 export interface GardenBaseDrawProps {
@@ -104,6 +159,7 @@ export interface GardenBaseDrawProps {
   regionOverrideValueA: [number, number, number, number];
   regionOverrideValueB: [number, number, number, number];
   resolution: [number, number];
+  showRegionHelpers: number;
 }
 
 export function createGardenBasePass(
@@ -111,6 +167,8 @@ export function createGardenBasePass(
   mesh: FlowerMesh,
   instances: InstanceData,
 ) {
+  const regionIndices = regl.buffer([0, 1, 2, 3, 4, 5, 6]);
+
   // ---- flower draw commands ----
   const drawStalks: Draw = regl({
     vert: gardenVert,
@@ -222,6 +280,33 @@ export function createGardenBasePass(
     depth: { enable: false, mask: false },
   }) as unknown as Draw;
 
+  const drawRegionHelpers: Draw = regl({
+    vert: REGION_HELPER_VERT,
+    frag: REGION_HELPER_FRAG,
+    attributes: {
+      aRegionIndex: { buffer: regionIndices, size: 1 },
+    },
+    uniforms: {
+      uProjection: regl.prop('projection' as never),
+      uView: regl.prop('view' as never),
+      uTime: regl.prop('time' as never),
+      uShowRegionHelpers: regl.prop('showRegionHelpers' as never),
+    },
+    framebuffer: regl.prop('framebuffer' as never),
+    primitive: 'points',
+    count: 7,
+    depth: { enable: true, mask: false, func: 'lequal' },
+    blend: {
+      enable: true,
+      func: {
+        srcRGB: 'src alpha',
+        srcAlpha: 1,
+        dstRGB: 'one minus src alpha',
+        dstAlpha: 1,
+      },
+    },
+  }) as unknown as Draw;
+
   return {
     draw(p: GardenBaseDrawProps) {
       // clear fbo
@@ -233,6 +318,7 @@ export function createGardenBasePass(
       drawBackdrop(p as unknown as Record<string, unknown>);
       drawStalks(p as unknown as Record<string, unknown>);
       drawFlowers(p as unknown as Record<string, unknown>);
+      drawRegionHelpers(p as unknown as Record<string, unknown>);
     },
   };
 }

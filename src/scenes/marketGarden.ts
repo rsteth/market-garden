@@ -28,7 +28,7 @@ import { createBloomPass } from '@/gl/passes/bloomPass';
 import { createGardenCompositePass } from '@/gl/passes/gardenCompositePass';
 
 // ---- camera ----
-const EYE: Vec3    = [0, 18, 24];
+const EYE: Vec3    = [0, 18, 30];
 const CENTER: Vec3 = [0, 2, 0];
 const UP: Vec3     = [0, 1, 0];
 const FOV = 58 * Math.PI / 180;
@@ -223,6 +223,7 @@ export function createMarketGardenScene(): Scene {
             1,
           ],
           resolution: state.resolution,
+          showRegionHelpers: state.params.showRegionHelpers ?? 0,
         });
       }
 

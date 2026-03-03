@@ -50,7 +50,7 @@ varying float vPetalMask;
 const float PI = 3.14159265;
 const float HEAD_Y = 1.02;
 const float HEAD_R = 0.03;
-const float REGION_SIGMA2 = 80.0;
+const float REGION_SIGMA2 = 35.5556;
 
 // ---- helpers ----
 
@@ -71,7 +71,7 @@ float noise2d(vec2 p) {
 
 vec2 getRegionCenter(int i) {
   float angle = float(i) * (2.0 * PI / 7.0) + 0.3;
-  float radius = 11.0 + 2.0 * sin(float(i) * 1.7);
+  float radius = (11.0 + 2.0 * sin(float(i) * 1.7)) * 1.2;
   return vec2(cos(angle), sin(angle)) * radius;
 }
 
