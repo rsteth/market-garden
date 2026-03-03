@@ -15,8 +15,8 @@ const HEAD_LONS = 6;
 const HEAD_LATS = 2;
 
 const N_PETALS = 5;
-const PETAL_LEN = 0.12;
-const PETAL_W = 0.045;
+const PETAL_LEN = 0.156;
+const PETAL_W = 0.0585;
 const PETAL_SEGS_ALONG = 3;
 const PETAL_SEGS_ACROSS = 1;
 

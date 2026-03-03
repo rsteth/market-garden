@@ -44,6 +44,7 @@ varying vec3  vNormal;
 varying vec3  vWorldPos;
 varying float vGlowMask;
 varying float vStalkMask;
+varying float vPetalMask;
 
 // ---- constants ----
 const float PI = 3.14159265;
@@ -224,7 +225,10 @@ void main() {
   } else if (aPartId < 1.5) {
     color = vec3(0.25, 0.2, 0.05);
   } else {
-    float hue = fract(colorSeed * 0.8 + seedVar * 0.3);
+    float hueWarm = fract(0.02 + colorSeed * 0.18 + seedVar * 0.08);
+    float hueBlue = fract(0.54 + colorSeed * 0.14 + seedVar * 0.10);
+    float useBlue = step(0.72, hash11(aInstanceSeed * 211.3 + colorSeed * 97.1));
+    float hue = mix(hueWarm, hueBlue, useBlue);
     float sat = 0.72 + slowBias * 0.25;
     float val = 0.48 + bloomTarget * 0.44;
     color = hsv2rgb(vec3(hue, sat, val));
@@ -242,5 +246,6 @@ void main() {
   vColor     = color;
   vGlowMask  = glow;
   vStalkMask = aPartId < 0.5 ? 1.0 : 0.0;
+  vPetalMask = aPartId > 1.5 ? 1.0 : 0.0;
   gl_Position = uProjection * uView * vec4(pos, 1.0);
 }

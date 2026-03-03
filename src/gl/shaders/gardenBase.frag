@@ -5,14 +5,22 @@ varying vec3  vNormal;
 varying vec3  vWorldPos;
 varying float vGlowMask;
 varying float vStalkMask;
+varying float vPetalMask;
 
 uniform vec3  uSunDir;
 uniform float uSunHeight;
 uniform vec3  uCameraPos;
+uniform float uDrawStalkOnly;
 
 void main() {
   vec3 N = normalize(vNormal);
   vec3 V = normalize(uCameraPos - vWorldPos);
+
+  if (uDrawStalkOnly > 0.5) {
+    if (vStalkMask < 0.5) discard;
+  } else {
+    if (vStalkMask > 0.5) discard;
+  }
 
   // diffuse (sun)
   float NdotL  = max(dot(N, uSunDir), 0.0);
@@ -39,6 +47,10 @@ void main() {
 
   // keep stalks from blowing out at noon; retain a warmer, more organic tone
   lit = mix(lit * vec3(0.86, 0.9, 0.74), lit, 1.0 - vStalkMask);
+
+  // subtle petal self-illumination for extra pop
+  float petalEmission = vPetalMask * (0.2 + 0.12 * vGlowMask);
+  lit += vColor * petalEmission;
 
   gl_FragColor = vec4(lit, vGlowMask);
 }

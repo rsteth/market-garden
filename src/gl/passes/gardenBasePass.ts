@@ -111,7 +111,55 @@ export function createGardenBasePass(
   mesh: FlowerMesh,
   instances: InstanceData,
 ) {
-  // ---- flower draw command ----
+  // ---- flower draw commands ----
+  const drawStalks: Draw = regl({
+    vert: gardenVert,
+    frag: gardenFrag,
+    attributes: {
+      aPosition:     { buffer: regl.buffer(mesh.positions),  size: 3 },
+      aNormal:       { buffer: regl.buffer(mesh.normals),    size: 3 },
+      aPartId:       { buffer: regl.buffer(mesh.partIds),    size: 1 },
+      aUAlong:       { buffer: regl.buffer(mesh.uAlongs),    size: 1 },
+      aURadial:      { buffer: regl.buffer(mesh.uRadials),   size: 1 },
+      aInstancePos:  { buffer: regl.buffer(instances.positions), size: 3, divisor: 1 },
+      aInstanceScale:{ buffer: regl.buffer(instances.scales),    size: 1, divisor: 1 },
+      aInstanceSeed: { buffer: regl.buffer(instances.seeds),     size: 1, divisor: 1 },
+    },
+    elements: regl.elements({ data: mesh.indices, type: 'uint16' }),
+    instances: instances.count,
+    uniforms: {
+      uProjection:  regl.prop('projection'  as never),
+      uView:        regl.prop('view'        as never),
+      uDataTexture: regl.prop('dataTexture' as never),
+      uTime:        regl.prop('time'        as never),
+      uSunDir:      regl.prop('sunDir'      as never),
+      uSunHeight:   regl.prop('sunHeight'   as never),
+      uWindStrength:regl.prop('windStrength' as never),
+      uGustiness:   regl.prop('gustiness'   as never),
+      uDayPhase:    regl.prop('dayPhase'    as never),
+      uOverrideBloomTargetActive: regl.prop('overrideBloomTargetActive' as never),
+      uOverrideBloomTargetValue:  regl.prop('overrideBloomTargetValue'  as never),
+      uOverrideAgitationActive:   regl.prop('overrideAgitationActive'   as never),
+      uOverrideAgitationValue:    regl.prop('overrideAgitationValue'    as never),
+      uOverrideMicroTwitchActive: regl.prop('overrideMicroTwitchActive' as never),
+      uOverrideMicroTwitchValue:  regl.prop('overrideMicroTwitchValue'  as never),
+      uOverrideColorSeedActive:   regl.prop('overrideColorSeedActive'   as never),
+      uOverrideColorSeedValue:    regl.prop('overrideColorSeedValue'    as never),
+      uOverrideSlowBiasActive:    regl.prop('overrideSlowBiasActive'    as never),
+      uOverrideSlowBiasValue:     regl.prop('overrideSlowBiasValue'     as never),
+      uRegionOverrideActiveA:     regl.prop('regionOverrideActiveA'     as never),
+      uRegionOverrideActiveB:     regl.prop('regionOverrideActiveB'     as never),
+      uRegionOverrideValueA:      regl.prop('regionOverrideValueA'      as never),
+      uRegionOverrideValueB:      regl.prop('regionOverrideValueB'      as never),
+      uCameraPos:   regl.prop('cameraPos'   as never),
+      uDrawStalkOnly: 1,
+    },
+    framebuffer: regl.prop('framebuffer' as never),
+    depth: { enable: true, mask: true },
+    cull: { enable: false },
+    blend: { enable: false },
+  }) as unknown as Draw;
+
   const drawFlowers: Draw = regl({
     vert: gardenVert,
     frag: gardenFrag,
@@ -152,9 +200,10 @@ export function createGardenBasePass(
       uRegionOverrideValueA:      regl.prop('regionOverrideValueA'      as never),
       uRegionOverrideValueB:      regl.prop('regionOverrideValueB'      as never),
       uCameraPos:   regl.prop('cameraPos'   as never),
+      uDrawStalkOnly: 0,
     },
     framebuffer: regl.prop('framebuffer' as never),
-    depth: { enable: true, mask: true },
+    depth: { enable: true, mask: true, func: 'lequal' },
     cull: { enable: false },
     blend: { enable: false },
   }) as unknown as Draw;
@@ -182,6 +231,7 @@ export function createGardenBasePass(
         framebuffer: p.framebuffer,
       });
       drawBackdrop(p as unknown as Record<string, unknown>);
+      drawStalks(p as unknown as Record<string, unknown>);
       drawFlowers(p as unknown as Record<string, unknown>);
     },
   };
