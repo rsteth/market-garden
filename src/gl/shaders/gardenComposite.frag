@@ -28,6 +28,10 @@ void main() {
   vec3 fogColorDusk  = vec3(0.30, 0.22, 0.18);
   float duskFactor   = 1.0 - smoothstep(0.0, 0.4, uSunHeight);
   vec3  fogColor     = mix(fogColorDay, fogColorDusk, duskFactor);
+  float nightBySun   = 1.0 - smoothstep(0.06, 0.35, uSunHeight);
+  float nightByPhase = 1.0 - (smoothstep(0.0, 0.16, uDayPhase) * (1.0 - smoothstep(0.84, 1.0, uDayPhase)));
+  float nightFactor  = clamp(max(nightBySun, nightByPhase), 0.0, 1.0);
+  fogColor *= 1.0 - nightFactor * 0.72;
 
   color = mix(color, fogColor, uFogAmount * 0.55);
 
