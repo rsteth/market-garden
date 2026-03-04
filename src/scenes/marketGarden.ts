@@ -37,6 +37,17 @@ const FAR  = 120;
 
 // ---- data fetch interval ----
 const FETCH_INTERVAL_MS = 30_000;
+const ENV_SMOOTH_HALF_LIFE_SEC = 1.2;
+
+const DEFAULT_ENV: MarketEnvironment = {
+  windStrength: 0.3,
+  gustiness: 0.1,
+  fogAmount: 0.2,
+  godraysIntensity: 0.3,
+  dayPhase: 0.5,
+  sunHeight: 1,
+  sunDir: [0, 1, 0],
+};
 
 export function createMarketGardenScene(): Scene {
   // passes (assigned in init)
@@ -61,13 +72,31 @@ export function createMarketGardenScene(): Scene {
 
   // market data
   let rawData: Float32Array | null = null;
-  let env: MarketEnvironment = {
-    windStrength: 0.3, gustiness: 0.1, fogAmount: 0.2,
-    godraysIntensity: 0.3, dayPhase: 0.5, sunHeight: 1, sunDir: [0, 1, 0],
-  };
+  let env: MarketEnvironment = { ...DEFAULT_ENV, sunDir: [...DEFAULT_ENV.sunDir] };
+  let envTarget: MarketEnvironment = { ...DEFAULT_ENV, sunDir: [...DEFAULT_ENV.sunDir] };
   let treatment = 0;
   let lastFetchTime = 0;
   let fetchInFlight = false;
+
+  const startMarketFetch = () => {
+    if (fetchInFlight) return;
+
+    fetchInFlight = true;
+    lastFetchTime = performance.now();
+
+    fetchMarketData()
+      .then((data) => {
+        rawData = data;
+        uploadMarketTexture(res.gl, res.dataTexture, data);
+        console.info('[market-data] Connected and updated market texture', {
+          floats: data.length,
+        });
+      })
+      .catch((error: unknown) => {
+        console.error('[market-data] Failed to connect to market texture endpoint', error);
+      })
+      .finally(() => { fetchInFlight = false; });
+  };
 
   // current canvas size tracking
   let curWidth = 1;
@@ -106,6 +135,9 @@ export function createMarketGardenScene(): Scene {
       // camera (view is static; projection updated on resize)
       viewMatrix = lookAt(EYE, CENTER, UP);
       projMatrix = perspective(FOV, 1, NEAR, FAR);
+
+      // fetch market data immediately on scene load
+      startMarketFetch();
     },
 
     update(state) {
@@ -129,26 +161,27 @@ export function createMarketGardenScene(): Scene {
 
       // ---- periodic data fetch ----
       const now = performance.now();
-      if (!fetchInFlight && now - lastFetchTime > FETCH_INTERVAL_MS) {
-        fetchInFlight = true;
-        lastFetchTime = now;
-        fetchMarketData()
-          .then((data) => {
-            rawData = data;
-            uploadMarketTexture(res.gl, res.dataTexture, data);
-            console.info('[market-data] Connected and updated market texture', {
-              floats: data.length,
-            });
-          })
-          .catch((error: unknown) => {
-            console.error('[market-data] Failed to connect to market texture endpoint', error);
-          })
-          .finally(() => { fetchInFlight = false; });
+      if (now - lastFetchTime > FETCH_INTERVAL_MS) {
+        startMarketFetch();
       }
 
       // ---- extract environment ----
       if (rawData) {
-        env = extractEnvironment(rawData, state.nowUtc);
+        envTarget = extractEnvironment(rawData, state.nowUtc);
+      }
+
+      const smoothingAlpha = 1 - Math.exp((-Math.LN2 * Math.max(0, state.dt)) / ENV_SMOOTH_HALF_LIFE_SEC);
+      env.windStrength += (envTarget.windStrength - env.windStrength) * smoothingAlpha;
+      env.gustiness += (envTarget.gustiness - env.gustiness) * smoothingAlpha;
+      env.fogAmount += (envTarget.fogAmount - env.fogAmount) * smoothingAlpha;
+      env.godraysIntensity += (envTarget.godraysIntensity - env.godraysIntensity) * smoothingAlpha;
+
+      // Keep day cycle on wall-clock time; smooth only market-volatility driven channels.
+      env.dayPhase = envTarget.dayPhase;
+      env.sunHeight = envTarget.sunHeight;
+      env.sunDir = envTarget.sunDir;
+      if (!Number.isFinite(env.sunDir[0]) || !Number.isFinite(env.sunDir[1]) || !Number.isFinite(env.sunDir[2])) {
+        env.sunDir = [0, 1, 0];
       }
 
       // ---- apply overrides ----
