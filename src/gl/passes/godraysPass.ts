@@ -13,8 +13,9 @@ export interface GodraysDrawProps {
   source: REGL.Framebuffer2D;
   framebuffer: REGL.Framebuffer2D;
   lightScreenPos: [number, number];
-  auroraEnergy: number;
+  godraysIntensity: number;
   sunHeight: number;
+  dayPhase: number;
 }
 
 export function createGodraysPass(regl: REGL.Regl) {
@@ -23,10 +24,11 @@ export function createGodraysPass(regl: REGL.Regl) {
     frag: godraysFrag,
     attributes: { position: QUAD },
     uniforms: {
-      uBright:         regl.prop('source'          as never),
-      uLightScreenPos: regl.prop('lightScreenPos'  as never),
-      uAuroraEnergy:   regl.prop('auroraEnergy'    as never),
-      uSunHeight:      regl.prop('sunHeight'       as never),
+      uBright:             regl.prop('source'             as never),
+      uLightScreenPos:     regl.prop('lightScreenPos'     as never),
+      uGodraysIntensity:   regl.prop('godraysIntensity'   as never),
+      uSunHeight:          regl.prop('sunHeight'          as never),
+      uDayPhase:           regl.prop('dayPhase'           as never),
     },
     framebuffer: regl.prop('framebuffer' as never),
     count: 6,

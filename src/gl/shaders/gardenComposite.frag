@@ -6,7 +6,7 @@ uniform sampler2D uBloom;
 uniform sampler2D uRays;
 uniform float uFogAmount;
 uniform float uSunHeight;
-uniform float uAuroraEnergy;
+uniform float uGodraysIntensity;
 uniform float uDayPhase;
 uniform int   uTreatment;    // 0 cinematic, 1 clean
 
@@ -17,8 +17,8 @@ void main() {
 
   // bloom intensity: cinematic is hazier
   float bloomI = (uTreatment == 0) ? 0.55 : 0.12;
-  // godrays intensity: cinematic + aurora-driven
-  float raysI  = (uTreatment == 0) ? 0.40 * uAuroraEnergy : 0.08 * uAuroraEnergy;
+  // godrays intensity: cinematic + godrays-driven
+  float raysI  = (uTreatment == 0) ? 0.40 * uGodraysIntensity : 0.08 * uGodraysIntensity;
 
   vec3 color = base + bloom * bloomI + rays * raysI;
 
@@ -28,6 +28,10 @@ void main() {
   vec3 fogColorDusk  = vec3(0.30, 0.22, 0.18);
   float duskFactor   = 1.0 - smoothstep(0.0, 0.4, uSunHeight);
   vec3  fogColor     = mix(fogColorDay, fogColorDusk, duskFactor);
+  float nightBySun   = 1.0 - smoothstep(0.06, 0.35, uSunHeight);
+  float nightByPhase = 1.0 - (smoothstep(0.0, 0.16, uDayPhase) * (1.0 - smoothstep(0.84, 1.0, uDayPhase)));
+  float nightFactor  = clamp(max(nightBySun, nightByPhase), 0.0, 1.0);
+  fogColor *= 1.0 - nightFactor * 0.72;
 
   color = mix(color, fogColor, uFogAmount * 0.55);
 

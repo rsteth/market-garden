@@ -18,7 +18,7 @@ import { perspective, lookAt, projectDirToScreen } from '@/gl/camera';
 import type { Mat4, Vec3 } from '@/gl/camera';
 import { generateFlowerMesh } from '@/gl/meshFlower';
 import { generateInstances } from '@/gl/gardenInstances';
-import { fetchMarketData, uploadMarketTexture, extractEnvironment } from '@/gl/marketData';
+import { fetchMarketData, uploadMarketTexture, extractEnvironment, calculateSun } from '@/gl/marketData';
 import { createRenderTarget } from '@/gl/renderTarget';
 
 import { createGardenBasePass } from '@/gl/passes/gardenBasePass';
@@ -28,7 +28,7 @@ import { createBloomPass } from '@/gl/passes/bloomPass';
 import { createGardenCompositePass } from '@/gl/passes/gardenCompositePass';
 
 // ---- camera ----
-const EYE: Vec3    = [0, 18, 24];
+const EYE: Vec3    = [0, 18, 30];
 const CENTER: Vec3 = [0, 2, 0];
 const UP: Vec3     = [0, 1, 0];
 const FOV = 58 * Math.PI / 180;
@@ -37,6 +37,17 @@ const FAR  = 120;
 
 // ---- data fetch interval ----
 const FETCH_INTERVAL_MS = 30_000;
+const ENV_SMOOTH_HALF_LIFE_SEC = 1.2;
+
+const DEFAULT_ENV: MarketEnvironment = {
+  windStrength: 0.3,
+  gustiness: 0.1,
+  fogAmount: 0.2,
+  godraysIntensity: 0.3,
+  dayPhase: 0.5,
+  sunHeight: 1,
+  sunDir: [0, 1, 0],
+};
 
 export function createMarketGardenScene(): Scene {
   // passes (assigned in init)
@@ -61,13 +72,31 @@ export function createMarketGardenScene(): Scene {
 
   // market data
   let rawData: Float32Array | null = null;
-  let env: MarketEnvironment = {
-    windStrength: 0.3, gustiness: 0.1, fogAmount: 0.2,
-    auroraEnergy: 0.3, dayPhase: 0.5, sunHeight: 1, sunDir: [0, 1, 0],
-  };
+  let env: MarketEnvironment = { ...DEFAULT_ENV, sunDir: [...DEFAULT_ENV.sunDir] };
+  let envTarget: MarketEnvironment = { ...DEFAULT_ENV, sunDir: [...DEFAULT_ENV.sunDir] };
   let treatment = 0;
   let lastFetchTime = 0;
   let fetchInFlight = false;
+
+  const startMarketFetch = () => {
+    if (fetchInFlight) return;
+
+    fetchInFlight = true;
+    lastFetchTime = performance.now();
+
+    fetchMarketData()
+      .then((data) => {
+        rawData = data;
+        uploadMarketTexture(res.gl, res.dataTexture, data);
+        console.info('[market-data] Connected and updated market texture', {
+          floats: data.length,
+        });
+      })
+      .catch((error: unknown) => {
+        console.error('[market-data] Failed to connect to market texture endpoint', error);
+      })
+      .finally(() => { fetchInFlight = false; });
+  };
 
   // current canvas size tracking
   let curWidth = 1;
@@ -106,6 +135,9 @@ export function createMarketGardenScene(): Scene {
       // camera (view is static; projection updated on resize)
       viewMatrix = lookAt(EYE, CENTER, UP);
       projMatrix = perspective(FOV, 1, NEAR, FAR);
+
+      // fetch market data immediately on scene load
+      startMarketFetch();
     },
 
     update(state) {
@@ -129,26 +161,50 @@ export function createMarketGardenScene(): Scene {
 
       // ---- periodic data fetch ----
       const now = performance.now();
-      if (!fetchInFlight && now - lastFetchTime > FETCH_INTERVAL_MS) {
-        fetchInFlight = true;
-        lastFetchTime = now;
-        fetchMarketData()
-          .then((data) => {
-            rawData = data;
-            uploadMarketTexture(res.gl, res.dataTexture, data);
-          })
-          .catch(() => {})
-          .finally(() => { fetchInFlight = false; });
+      if (now - lastFetchTime > FETCH_INTERVAL_MS) {
+        startMarketFetch();
       }
 
       // ---- extract environment ----
       if (rawData) {
-        env = extractEnvironment(rawData, state.nowUtc);
+        envTarget = extractEnvironment(rawData, state.nowUtc);
+      }
+
+      const smoothingAlpha = 1 - Math.exp((-Math.LN2 * Math.max(0, state.dt)) / ENV_SMOOTH_HALF_LIFE_SEC);
+      env.windStrength += (envTarget.windStrength - env.windStrength) * smoothingAlpha;
+      env.gustiness += (envTarget.gustiness - env.gustiness) * smoothingAlpha;
+      env.fogAmount += (envTarget.fogAmount - env.fogAmount) * smoothingAlpha;
+      env.godraysIntensity += (envTarget.godraysIntensity - env.godraysIntensity) * smoothingAlpha;
+
+      // Keep day cycle on wall-clock time; smooth only market-volatility driven channels.
+      env.dayPhase = envTarget.dayPhase;
+      env.sunHeight = envTarget.sunHeight;
+      env.sunDir = envTarget.sunDir;
+      if (!Number.isFinite(env.sunDir[0]) || !Number.isFinite(env.sunDir[1]) || !Number.isFinite(env.sunDir[2])) {
+        env.sunDir = [0, 1, 0];
+      }
+
+      // ---- apply overrides ----
+      if (state.overrides) {
+        const o = state.overrides;
+        if (o.windStrength?.active) env.windStrength = o.windStrength.value;
+        if (o.gustiness?.active)    env.gustiness    = o.gustiness.value;
+        if (o.fogAmount?.active)    env.fogAmount    = o.fogAmount.value;
+        if (o.godraysIntensity?.active) env.godraysIntensity = o.godraysIntensity.value;
+
+        if (o.dayPhase?.active) {
+          env.dayPhase = o.dayPhase.value;
+          const { sunHeight, sunDir } = calculateSun(env.dayPhase);
+          env.sunHeight = sunHeight;
+          env.sunDir = sunDir;
+        }
       }
     },
 
     draw(state, activePasses) {
       const sunScreen = projectDirToScreen(env.sunDir, viewMatrix, projMatrix);
+      const o = state.overrides;
+      const godraysIntensity = o.godraysIntensity?.active ? o.godraysIntensity.value : env.godraysIntensity;
 
       // A — base garden render
       if (activePasses.has('garden')) {
@@ -165,7 +221,42 @@ export function createMarketGardenScene(): Scene {
           gustiness: env.gustiness,
           fogAmount: env.fogAmount,
           dayPhase: env.dayPhase,
+          overrideBloomTargetActive: o.bloomTarget?.active ? 1 : 0,
+          overrideBloomTargetValue: o.bloomTarget?.value ?? 0.5,
+          overrideAgitationActive: o.agitation?.active ? 1 : 0,
+          overrideAgitationValue: o.agitation?.value ?? 0.5,
+          overrideMicroTwitchActive: o.microTwitch?.active ? 1 : 0,
+          overrideMicroTwitchValue: o.microTwitch?.value ?? 0.5,
+          overrideColorSeedActive: o.colorSeed?.active ? 1 : 0,
+          overrideColorSeedValue: o.colorSeed?.value ?? 0.5,
+          overrideSlowBiasActive: o.slowBias?.active ? 1 : 0,
+          overrideSlowBiasValue: o.slowBias?.value ?? 0.5,
+          regionOverrideActiveA: [
+            o.region1Influence?.active ? 1 : 0,
+            o.region2Influence?.active ? 1 : 0,
+            o.region3Influence?.active ? 1 : 0,
+            o.region4Influence?.active ? 1 : 0,
+          ],
+          regionOverrideActiveB: [
+            o.region5Influence?.active ? 1 : 0,
+            o.region6Influence?.active ? 1 : 0,
+            o.region7Influence?.active ? 1 : 0,
+            0,
+          ],
+          regionOverrideValueA: [
+            o.region1Influence?.value ?? 1,
+            o.region2Influence?.value ?? 1,
+            o.region3Influence?.value ?? 1,
+            o.region4Influence?.value ?? 1,
+          ],
+          regionOverrideValueB: [
+            o.region5Influence?.value ?? 1,
+            o.region6Influence?.value ?? 1,
+            o.region7Influence?.value ?? 1,
+            1,
+          ],
           resolution: state.resolution,
+          showRegionHelpers: state.params.showRegionHelpers ?? 0,
         });
       }
 
@@ -173,7 +264,7 @@ export function createMarketGardenScene(): Scene {
       brightPass.draw({
         source: rtBase.fbo,
         framebuffer: rtHalfA.fbo,
-        auroraEnergy: env.auroraEnergy,
+        godraysIntensity,
         fogAmount: env.fogAmount,
       });
 
@@ -183,8 +274,9 @@ export function createMarketGardenScene(): Scene {
           source: rtHalfA.fbo,
           framebuffer: rtHalfB.fbo,
           lightScreenPos: sunScreen,
-          auroraEnergy: env.auroraEnergy,
+          godraysIntensity,
           sunHeight: env.sunHeight,
+          dayPhase: env.dayPhase,
         });
       }
 
@@ -208,7 +300,7 @@ export function createMarketGardenScene(): Scene {
           rays: rtHalfB.fbo,
           fogAmount: env.fogAmount,
           sunHeight: env.sunHeight,
-          auroraEnergy: env.auroraEnergy,
+          godraysIntensity,
           dayPhase: env.dayPhase,
           treatment,
         });

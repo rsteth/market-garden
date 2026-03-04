@@ -47,13 +47,15 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
       const capabilities: CapabilityPlan = checkCapabilities(gl);
 
       const initialSize = computeCanvasSize(canvas);
-      applyCanvasSize(canvas, initialSize);
+      if (applyCanvasSize(canvas, initialSize)) {
+        regl.poll();
+      }
 
       // shared resources (pingPong kept for interface compat; garden uses its own FBOs)
       const pingPong = createPingPongFBO(regl, gl, initialSize.width, initialSize.height);
 
-      // data texture — starts as 2x8 zeros; the scene uploads real data on first fetch
-      const dataTexture = createFloatTexture(regl, gl, 2, 8, new Float32Array(2 * 8 * 4));
+      // data texture — starts as 4x8 zeros; the scene uploads real data on first fetch
+      const dataTexture = createFloatTexture(regl, gl, 4, 8, new Float32Array(4 * 8 * 4));
 
       const resources: RenderResources = { gl, pingPong, dataTexture, capabilities };
 
@@ -134,7 +136,11 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
           mouse: [pointerX, pointerY],
           mouseDown: pointerDown ? 1 : 0,
           nowUtc: Date.now() / 1000,
-          params: { treatment: ctrl.treatment },
+          params: {
+            treatment: ctrl.treatment,
+            showRegionHelpers: ctrl.showRegionHelpers ? 1 : 0,
+          },
+          overrides: ctrl.overrides,
         });
 
         const activePasses = new Set<string>();

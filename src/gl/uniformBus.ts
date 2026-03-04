@@ -1,3 +1,8 @@
+export interface OverrideValue {
+  active: boolean;
+  value: number;
+}
+
 export interface UniformState {
   time: number;
   dt: number;
@@ -8,6 +13,8 @@ export interface UniformState {
   nowUtc: number;
   /** Generic numeric params bag — scenes can read from here freely */
   params: Record<string, number>;
+  /** Debug overrides from UI */
+  overrides: Record<string, OverrideValue>;
 }
 
 export interface UniformBus {
@@ -24,6 +31,7 @@ export function createUniformBus(): UniformBus {
     mouseDown: 0,
     nowUtc: 0,
     params: {},
+    overrides: {},
   };
 
   return {
@@ -36,6 +44,7 @@ export function createUniformBus(): UniformBus {
       if (partial.mouseDown !== undefined) state.mouseDown = partial.mouseDown;
       if (partial.nowUtc !== undefined) state.nowUtc = partial.nowUtc;
       if (partial.params) Object.assign(state.params, partial.params);
+      if (partial.overrides) state.overrides = partial.overrides;
     },
   };
 }

@@ -10,6 +10,28 @@ npm run dev     # http://localhost:3000
 npm run build   # production build
 ```
 
+## Environment variables
+
+For local runs, copy `.env.example` to `.env.local` and fill in your values:
+
+```bash
+cp .env.example .env.local
+```
+
+`MARKET_TEXTURE_API_KEY` is optional and only sent when present.
+
+## CI/CD and GitHub Pages
+
+GitHub Pages deploy is configured in `.github/workflows/deploy-pages.yml`.
+
+Use a GitHub Environment named `github-pages` and define these **Environment Secrets**:
+
+- `MARKET_TEXTURE_API_BASE_URL`
+- `MARKET_TEXTURE_API_TOKEN`
+- `MARKET_TEXTURE_API_KEY` (optional)
+
+During build, CI fetches `/market/texture` into `public/market-texture.bin`, then exports the app statically to `out/` for Pages deployment.
+
 ## Project structure
 
 ```

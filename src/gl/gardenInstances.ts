@@ -11,6 +11,13 @@ export interface InstanceData {
 }
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+const EDGE_FALLOFF_POWER = 0.62;
+const EDGE_BAND_START = 0.3;
+
+function smoothstep(edge0: number, edge1: number, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
 
 export function generateInstances(
   count: number = 10000,
@@ -29,7 +36,10 @@ export function generateInstances(
 
   for (let i = 0; i < count; i++) {
     const t = i / count;
-    const r = Math.sqrt(t) * gardenRadius;
+    const baseR = Math.pow(t, EDGE_FALLOFF_POWER) * gardenRadius;
+    const edgeT = smoothstep(EDGE_BAND_START, 1, t);
+    const edgeJitter = (rng() - 0.5) * gardenRadius * 0.4 * edgeT;
+    const r = Math.max(0, Math.min(gardenRadius * 1.06, baseR + edgeJitter));
     const theta = i * GOLDEN_ANGLE;
 
     positions[i * 3]     = Math.cos(theta) * r + (rng() - 0.5) * 0.35;

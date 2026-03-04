@@ -9,14 +9,14 @@ const STALK_TOP_R = 0.008;
 const STALK_SEGS = 6;
 const STALK_SIDES = 5;
 
-const HEAD_R = 0.03;
+const HEAD_R = 0.045;
 const HEAD_Y = STALK_HEIGHT;
 const HEAD_LONS = 6;
 const HEAD_LATS = 2;
 
 const N_PETALS = 5;
-const PETAL_LEN = 0.09;
-const PETAL_W = 0.035;
+const PETAL_LEN = 0.156;
+const PETAL_W = 0.0585;
 const PETAL_SEGS_ALONG = 3;
 const PETAL_SEGS_ACROSS = 1;
 

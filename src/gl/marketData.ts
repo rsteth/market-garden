@@ -1,5 +1,5 @@
 /**
- * Market data texture: fetch binary blob, upload as 2x8 RGBA32F,
+ * Market data texture: fetch binary blob, upload as 4x8 RGBA32F,
  * and extract global environment signals.
  */
 
@@ -12,7 +12,7 @@ export interface MarketEnvironment {
   windStrength: number;
   gustiness: number;
   fogAmount: number;
-  auroraEnergy: number;
+  godraysIntensity: number;
   dayPhase: number;
   sunHeight: number;
   sunDir: Vec3;
@@ -20,10 +20,28 @@ export interface MarketEnvironment {
 
 // ---- fetch ----
 
-export async function fetchMarketData(url = '/api/market-data'): Promise<Float32Array> {
+export async function fetchMarketData(url = '/market-texture.bin'): Promise<Float32Array> {
   const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Market texture request failed: ${res.status} ${res.statusText}`);
+  }
+
+  const width = Number(res.headers.get('X-MarketTex-Width') ?? '4');
+  const height = Number(res.headers.get('X-MarketTex-Height') ?? '8');
+  const format = res.headers.get('X-MarketTex-Format') ?? 'RGBA32F';
+
   const buf = await res.arrayBuffer();
-  return new Float32Array(buf);
+  const floats = new Float32Array(buf);
+
+  if (floats.length !== 128) {
+    throw new Error(`Unexpected market texture payload length: ${floats.length}`);
+  }
+
+  if (width !== 4 || height !== 8 || format !== 'RGBA32F') {
+    throw new Error(`Unexpected market texture layout: ${width}x${height} ${format}`);
+  }
+
+  return floats;
 }
 
 // ---- upload ----
@@ -43,7 +61,7 @@ export function uploadMarketTexture(
   gl.bindTexture(gl.TEXTURE_2D, glTex);
   gl.texImage2D(
     gl.TEXTURE_2D, 0, gl.RGBA32F,
-    2, 8, 0,
+    4, 8, 0,
     gl.RGBA, gl.FLOAT, data,
   );
   gl.bindTexture(gl.TEXTURE_2D, null);
@@ -55,8 +73,8 @@ export function extractEnvironment(
   data: Float32Array,
   nowUtcSeconds: number,
 ): MarketEnvironment {
-  // meta row = y=7, each row = 2 texels * 4 channels = 8 floats
-  const m = 7 * 8;
+  // meta row = y=7, each row = 4 texels * 4 channels = 16 floats
+  const m = 7 * 16;
   const vixLevel  = data[m + 0]; // [-1,1]
   const vixChange = data[m + 1];
   const spyRet    = data[m + 2];
@@ -67,13 +85,20 @@ export function extractEnvironment(
   const windStrength  = clamp01(vixLevel * 0.5 + 0.5);
   const gustiness     = clamp01(Math.abs(vixChange));
   const fogAmount     = clamp01(-spyRet * 0.5 + 0.5);
-  const auroraEnergy  = clamp01(Math.abs(ndxRet));
+  const godraysIntensity = clamp01(Math.sqrt(Math.abs(ndxRet)));
 
   // sun cycle
   let dayPhase = 0.5;
   if (closeUtc > openUtc) {
     dayPhase = clamp01((nowUtcSeconds - openUtc) / (closeUtc - openUtc));
   }
+  
+  const { sunHeight, sunDir } = calculateSun(dayPhase);
+
+  return { windStrength, gustiness, fogAmount, godraysIntensity, dayPhase, sunHeight, sunDir };
+}
+
+export function calculateSun(dayPhase: number): { sunHeight: number; sunDir: Vec3 } {
   const sunHeight = Math.sin(Math.PI * dayPhase);
 
   const maxAz = 1.2;
@@ -86,7 +111,7 @@ export function extractEnvironment(
   const len = Math.hypot(...rawDir);
   const sunDir: Vec3 = [rawDir[0] / len, rawDir[1] / len, rawDir[2] / len];
 
-  return { windStrength, gustiness, fogAmount, auroraEnergy, dayPhase, sunHeight, sunDir };
+  return { sunHeight, sunDir };
 }
 
 function clamp01(x: number): number {

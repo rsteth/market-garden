@@ -12,7 +12,7 @@ const QUAD: [number, number][] = [[-1,-1],[1,-1],[-1,1],[-1,1],[1,-1],[1,1]];
 export interface BrightExtractDrawProps {
   source: REGL.Framebuffer2D;
   framebuffer: REGL.Framebuffer2D;
-  auroraEnergy: number;
+  godraysIntensity: number;
   fogAmount: number;
 }
 
@@ -22,9 +22,9 @@ export function createBrightExtractPass(regl: REGL.Regl) {
     frag: brightFrag,
     attributes: { position: QUAD },
     uniforms: {
-      uBase:         regl.prop('source'       as never),
-      uAuroraEnergy: regl.prop('auroraEnergy' as never),
-      uFogAmount:    regl.prop('fogAmount'    as never),
+      uBase:              regl.prop('source'            as never),
+      uGodraysIntensity:  regl.prop('godraysIntensity'  as never),
+      uFogAmount:         regl.prop('fogAmount'         as never),
     },
     framebuffer: regl.prop('framebuffer' as never),
     count: 6,

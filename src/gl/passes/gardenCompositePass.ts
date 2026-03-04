@@ -15,7 +15,7 @@ export interface GardenCompositeDrawProps {
   rays: REGL.Framebuffer2D;
   fogAmount: number;
   sunHeight: number;
-  auroraEnergy: number;
+  godraysIntensity: number;
   dayPhase: number;
   treatment: number;
 }
@@ -31,7 +31,7 @@ export function createGardenCompositePass(regl: REGL.Regl) {
       uRays:         regl.prop('rays'         as never),
       uFogAmount:    regl.prop('fogAmount'    as never),
       uSunHeight:    regl.prop('sunHeight'    as never),
-      uAuroraEnergy: regl.prop('auroraEnergy' as never),
+      uGodraysIntensity: regl.prop('godraysIntensity' as never),
       uDayPhase:     regl.prop('dayPhase'     as never),
       uTreatment:    regl.prop('treatment'    as never),
     },
