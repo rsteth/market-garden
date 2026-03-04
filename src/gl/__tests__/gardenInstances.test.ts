@@ -27,7 +27,10 @@ describe('generateInstances', () => {
   });
 
   it('positions are within garden radius + jitter margin', () => {
-    const maxR = 22 + 0.5; // radius + generous jitter bound
+    const gardenRadius = 22;
+    const maxRadialOvershoot = gardenRadius * 0.06; // r is clamped to 106% of radius
+    const maxCartesianJitter = Math.hypot(0.175, 0.175); // x/z jitter is ±0.175 each axis
+    const maxR = gardenRadius + maxRadialOvershoot + maxCartesianJitter;
     for (let i = 0; i < data.count; i++) {
       const x = data.positions[i * 3];
       const z = data.positions[i * 3 + 2];
