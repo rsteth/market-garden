@@ -83,6 +83,7 @@ const INITIAL_CONTROLS: Controls = {
 export default function Page() {
   const [debugInfo, setDebugInfo] = useState<DebugInfo>(INITIAL_DEBUG);
   const [controls, setControls] = useState<Controls>(INITIAL_CONTROLS);
+  const [showDebugOverlay, setShowDebugOverlay] = useState(true);
   const normalizedControls: Controls = {
     ...INITIAL_CONTROLS,
     ...controls,
@@ -95,11 +96,35 @@ export default function Page() {
   return (
     <>
       <ShaderCanvas controls={normalizedControls} onDebugInfo={setDebugInfo} />
-      <DebugOverlay
-        debugInfo={debugInfo}
-        controls={normalizedControls}
-        onControlsChange={setControls}
-      />
+      {showDebugOverlay ? (
+        <DebugOverlay
+          debugInfo={debugInfo}
+          controls={normalizedControls}
+          onControlsChange={setControls}
+          onHide={() => setShowDebugOverlay(false)}
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowDebugOverlay(true)}
+          style={{
+            position: 'fixed',
+            top: 12,
+            left: 12,
+            zIndex: 10,
+            padding: '6px 10px',
+            borderRadius: 6,
+            border: '1px solid #444',
+            background: 'rgba(0, 0, 0, 0.55)',
+            color: '#ccc',
+            fontSize: 11,
+            lineHeight: 1,
+            cursor: 'pointer',
+          }}
+        >
+          Show dashboard
+        </button>
+      )}
     </>
   );
 }

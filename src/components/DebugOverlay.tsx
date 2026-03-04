@@ -7,6 +7,7 @@ interface DebugOverlayProps {
   debugInfo: DebugInfo;
   controls: Controls;
   onControlsChange: Dispatch<SetStateAction<Controls>>;
+  onHide: () => void;
 }
 
 const overlayStyle: React.CSSProperties = {
@@ -95,6 +96,7 @@ export function DebugOverlay({
   debugInfo,
   controls,
   onControlsChange,
+  onHide,
 }: DebugOverlayProps) {
   const { fps, frameTime, capabilities } = debugInfo;
 
@@ -252,6 +254,25 @@ export function DebugOverlay({
         <div style={sectionTitleStyle}>Regional influence overrides</div>
         {REGION_KEYS.map(renderOverrideRow)}
       </div>
+
+
+      <button
+        type="button"
+        onClick={onHide}
+        style={{
+          marginTop: 8,
+          width: '100%',
+          border: '1px solid #444',
+          background: 'rgba(0, 0, 0, 0.35)',
+          color: '#ccc',
+          borderRadius: 4,
+          padding: '4px 6px',
+          fontSize: 10,
+          cursor: 'pointer',
+        }}
+      >
+        Hide dashboard
+      </button>
     </div>
   );
 }
