@@ -72,7 +72,7 @@ export function createMarketGardenScene(): Scene {
 
   // market data
   let rawData: Float32Array | null = null;
-  let env: MarketEnvironment = { ...DEFAULT_ENV, sunDir: [...DEFAULT_ENV.sunDir] };
+  const env: MarketEnvironment = { ...DEFAULT_ENV, sunDir: [...DEFAULT_ENV.sunDir] };
   let envTarget: MarketEnvironment = { ...DEFAULT_ENV, sunDir: [...DEFAULT_ENV.sunDir] };
   let treatment = 0;
   let lastFetchTime = 0;
