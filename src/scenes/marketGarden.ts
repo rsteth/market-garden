@@ -28,12 +28,50 @@ import { createBloomPass } from '@/gl/passes/bloomPass';
 import { createGardenCompositePass } from '@/gl/passes/gardenCompositePass';
 
 // ---- camera ----
-const EYE: Vec3    = [0, 18, 30];
+const EYE_DEFAULT: Vec3    = [0, 18, 30];
 const CENTER: Vec3 = [0, 2, 0];
 const UP: Vec3     = [0, 1, 0];
-const FOV = 58 * Math.PI / 180;
+const FOV_DEFAULT = 58 * Math.PI / 180;
 const NEAR = 0.5;
 const FAR  = 120;
+
+// Aspect ratio at which the default camera was tuned (~16:9 desktop)
+const BASELINE_ASPECT = 16 / 9;
+
+/**
+ * Compute an adjusted camera for the current aspect ratio.
+ * Wide screens: widen FOV so the full flower-patch width is visible.
+ * Portrait screens: longer lens (tighter FOV), camera raised + pulled
+ * forward, looking down more steeply so the patch appears longer/deeper.
+ */
+function adaptCamera(aspect: number): { eye: Vec3; center: Vec3; fov: number } {
+  if (aspect >= BASELINE_ASPECT) {
+    // Wide / ultra-wide — widen FOV to reveal more of the patch
+    const stretch = aspect / BASELINE_ASPECT;            // >1
+    const extraFov = (stretch - 1) * (12 * Math.PI / 180); // up to ~+12° extra
+    return { eye: [...EYE_DEFAULT], center: [...CENTER], fov: FOV_DEFAULT + extraFov };
+  }
+  // Portrait — how much narrower than baseline (1 = same, 0 = infinitely narrow)
+  const squeeze = aspect / BASELINE_ASPECT;
+  // Raise camera and bring it forward for a steeper downward look
+  const extraUp      = (1 - squeeze) * 12;   // up to +12 Y
+  const forwardPull  = (1 - squeeze) * 10;   // pull Z closer (reduce Z)
+  const eye: Vec3 = [
+    EYE_DEFAULT[0],
+    EYE_DEFAULT[1] + extraUp,
+    EYE_DEFAULT[2] - forwardPull,
+  ];
+  // Shift look-target lower so we peer down into the patch
+  const centerDown = (1 - squeeze) * 4;      // look-target drops by up to 4
+  const center: Vec3 = [
+    CENTER[0],
+    CENTER[1] - centerDown,
+    CENTER[2],
+  ];
+  // Tighter / longer lens for portrait (narrow FOV down from 58° toward ~44°)
+  const fov = FOV_DEFAULT - (1 - squeeze) * (14 * Math.PI / 180);
+  return { eye, center, fov };
+}
 
 // ---- data fetch interval ----
 const FETCH_INTERVAL_MS = 30_000;
@@ -66,6 +104,7 @@ export function createMarketGardenScene(): Scene {
   // camera matrices
   let projMatrix: Mat4;
   let viewMatrix: Mat4;
+  let currentEye: Vec3 = [...EYE_DEFAULT];
 
   // resources handle
   let res: RenderResources;
@@ -136,9 +175,9 @@ export function createMarketGardenScene(): Scene {
       rtHalfB = createRenderTarget(regl, gl, w, h);
       rtHalfC = createRenderTarget(regl, gl, w, h);
 
-      // camera (view is static; projection updated on resize)
-      viewMatrix = lookAt(EYE, CENTER, UP);
-      projMatrix = perspective(FOV, 1, NEAR, FAR);
+      // camera (updated on resize to adapt to aspect ratio)
+      viewMatrix = lookAt(EYE_DEFAULT, CENTER, UP);
+      projMatrix = perspective(FOV_DEFAULT, 1, NEAR, FAR);
 
       // fetch market data immediately on scene load and continue polling even if RAF is throttled on mobile.
       startMarketFetch();
@@ -161,7 +200,11 @@ export function createMarketGardenScene(): Scene {
         rtHalfB.resize(halfW, halfH);
         rtHalfC.resize(halfW, halfH);
 
-        projMatrix = perspective(FOV, w / h, NEAR, FAR);
+        const aspect = w / h;
+        const { eye, center, fov } = adaptCamera(aspect);
+        currentEye = eye;
+        viewMatrix = lookAt(currentEye, center, UP);
+        projMatrix = perspective(fov, aspect, NEAR, FAR);
       }
 
       // ---- treatment from params ----
@@ -216,7 +259,7 @@ export function createMarketGardenScene(): Scene {
           projection: projMatrix,
           view: viewMatrix,
           dataTexture: res.dataTexture,
-          cameraPos: EYE,
+          cameraPos: currentEye,
           time: state.time,
           sunDir: env.sunDir,
           sunHeight: env.sunHeight,
