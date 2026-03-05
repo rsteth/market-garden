@@ -21,7 +21,13 @@ export interface MarketEnvironment {
 // ---- fetch ----
 
 export async function fetchMarketData(url = '/market-texture.bin'): Promise<Float32Array> {
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
+    },
+  });
   if (!res.ok) {
     throw new Error(`Market texture request failed: ${res.status} ${res.statusText}`);
   }

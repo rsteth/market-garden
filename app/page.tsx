@@ -83,7 +83,7 @@ const INITIAL_CONTROLS: Controls = {
 export default function Page() {
   const [debugInfo, setDebugInfo] = useState<DebugInfo>(INITIAL_DEBUG);
   const [controls, setControls] = useState<Controls>(INITIAL_CONTROLS);
-  const [showDebugOverlay, setShowDebugOverlay] = useState(true);
+  const [showDebugOverlay, setShowDebugOverlay] = useState(false);
   const normalizedControls: Controls = {
     ...INITIAL_CONTROLS,
     ...controls,

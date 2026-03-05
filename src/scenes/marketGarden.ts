@@ -75,15 +75,19 @@ export function createMarketGardenScene(): Scene {
   const env: MarketEnvironment = { ...DEFAULT_ENV, sunDir: [...DEFAULT_ENV.sunDir] };
   let envTarget: MarketEnvironment = { ...DEFAULT_ENV, sunDir: [...DEFAULT_ENV.sunDir] };
   let treatment = 0;
-  let lastFetchTime = 0;
   let fetchInFlight = false;
+  let fetchTimer: ReturnType<typeof setInterval> | null = null;
+
+  const handleVisibilityChange = () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+      startMarketFetch();
+    }
+  };
 
   const startMarketFetch = () => {
     if (fetchInFlight) return;
 
     fetchInFlight = true;
-    lastFetchTime = performance.now();
-
     fetchMarketData()
       .then((data) => {
         rawData = data;
@@ -136,8 +140,12 @@ export function createMarketGardenScene(): Scene {
       viewMatrix = lookAt(EYE, CENTER, UP);
       projMatrix = perspective(FOV, 1, NEAR, FAR);
 
-      // fetch market data immediately on scene load
+      // fetch market data immediately on scene load and continue polling even if RAF is throttled on mobile.
       startMarketFetch();
+      fetchTimer = setInterval(startMarketFetch, FETCH_INTERVAL_MS);
+      if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+      }
     },
 
     update(state) {
@@ -159,11 +167,6 @@ export function createMarketGardenScene(): Scene {
       // ---- treatment from params ----
       treatment = (state.params.treatment ?? 0) | 0;
 
-      // ---- periodic data fetch ----
-      const now = performance.now();
-      if (now - lastFetchTime > FETCH_INTERVAL_MS) {
-        startMarketFetch();
-      }
 
       // ---- extract environment ----
       if (rawData) {
@@ -308,6 +311,14 @@ export function createMarketGardenScene(): Scene {
     },
 
     destroy() {
+      if (fetchTimer) {
+        clearInterval(fetchTimer);
+        fetchTimer = null;
+      }
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+
       rtBase.destroy();
       rtHalfA.destroy();
       rtHalfB.destroy();
