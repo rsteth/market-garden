@@ -20,7 +20,9 @@ export interface MarketEnvironment {
 
 // ---- fetch ----
 
-export async function fetchMarketData(url = '/market-texture.bin'): Promise<Float32Array> {
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+
+export async function fetchMarketData(url = `${BASE_PATH}/market-texture.bin`): Promise<Float32Array> {
   const res = await fetch(url, {
     cache: 'no-store',
     headers: {
