@@ -222,7 +222,7 @@ void main() {
   // ---- colour ----
   vec3 color;
   if (aPartId < 0.5) {
-    color = vec3(0.08, 0.11 + aUAlong * 0.07, 0.035);
+    color = vec3(0.045, 0.14 + aUAlong * 0.08, 0.04);
   } else if (aPartId < 1.5) {
     color = vec3(0.25, 0.2, 0.05);
   } else {

@@ -33,11 +33,13 @@ void main() {
   float nightFactor  = clamp(max(nightBySun, nightByPhase), 0.0, 1.0);
   fogColor *= 1.0 - nightFactor * 0.72;
 
-  color = mix(color, fogColor, uFogAmount * 0.55);
+  // depth-fade: fog thickest at top (horizon), fades toward bottom (near camera)
+  float fogDepth = 0.08 + 0.92 * smoothstep(0.05, 0.72, vUv.y);
+  color = mix(color, fogColor, uFogAmount * 0.55 * fogDepth);
 
-  // desaturate in fog
+  // desaturate in fog (also depth-faded)
   float luma = dot(color, vec3(0.299, 0.587, 0.114));
-  color = mix(vec3(luma), color, 1.0 - uFogAmount * 0.35);
+  color = mix(vec3(luma), color, 1.0 - uFogAmount * 0.35 * fogDepth);
 
   // ---- tone-map + gamma ----
   color = color / (1.0 + color);

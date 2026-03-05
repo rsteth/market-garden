@@ -43,14 +43,14 @@ void main() {
   skyBase *= mix(0.62, 0.95, sunLift) * skyExposure;
   skyBase = mix(skyBase, skyBase * sunTint, 0.20 + lowSun * 0.34);
 
-  vec3 soilBrownDawn = vec3(0.070, 0.050, 0.036);
-  vec3 soilBrownNoon = vec3(0.068, 0.048, 0.031);
+  vec3 soilBrownDawn = vec3(0.038, 0.028, 0.020);
+  vec3 soilBrownNoon = vec3(0.035, 0.025, 0.016);
   vec3 soilBrown = mix(soilBrownDawn, soilBrownNoon, midday);
   vec3 groundGi = skyBase * mix(0.05, 0.10, sunLift);
   vec3 groundBase = soilBrown + skyBase * 0.08;
   vec3 groundColor = groundBase + groundGi * (1.0 - smoothstep(0.04, 0.78, vUv.y));
   float nightFactor = 1.0 - max(dayWindow, sunLift);
-  groundColor *= 1.0 - nightFactor * 0.60;
+  groundColor *= 1.0 - nightFactor * 0.92;
   float middayGroundDarken = smoothstep(0.45, 1.0, midday);
   groundColor *= 1.0 - middayGroundDarken * 0.30;
 
@@ -62,8 +62,8 @@ void main() {
 
   // Push the implied horizon into the top quarter: mostly ground, then distant fade.
   float distanceFade = smoothstep(0.74, 0.98, vUv.y);
-  vec3 farBlueDawn = vec3(0.20, 0.25, 0.34);
-  vec3 farBlueNoon = vec3(0.24, 0.37, 0.56);
+  vec3 farBlueDawn = vec3(0.10, 0.12, 0.18);
+  vec3 farBlueNoon = vec3(0.18, 0.28, 0.44);
   vec3 distanceColor = mix(farBlueDawn, farBlueNoon, midday);
   vec3 duskWarmHaze = vec3(0.12, 0.06, 0.03) * lowSun;
   distanceColor += duskWarmHaze;

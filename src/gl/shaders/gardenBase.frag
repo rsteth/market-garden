@@ -26,7 +26,7 @@ void main() {
   // diffuse (sun)
   float NdotL  = max(dot(N, uSunDir), 0.0);
   vec3 sunTint = mix(vec3(0.85, 0.45, 0.25), vec3(1.0, 0.95, 0.9), uSunHeight);
-  vec3 stalkSunTint = mix(vec3(0.78, 0.72, 0.46), vec3(0.82, 0.78, 0.52), uSunHeight);
+  vec3 stalkSunTint = mix(vec3(0.48, 0.62, 0.30), vec3(0.55, 0.72, 0.40), uSunHeight);
 
   // ambient: sky + ground bounce
   float skyAmb    = max(dot(N, vec3(0.0, 1.0, 0.0)), 0.0) * 0.15;
@@ -36,8 +36,8 @@ void main() {
   // rim light
   float rim     = pow(1.0 - max(dot(N, V), 0.0), 3.0);
   vec3  rimTint = mix(stalkSunTint, sunTint, 1.0 - vStalkMask);
-  float rimStrength = mix(0.16, 0.4, 1.0 - vStalkMask);
-  vec3  rimCol  = rimTint * rim * uSunHeight * rimStrength;
+  float rimStrength = mix(0.30, 0.55, 1.0 - vStalkMask);
+  vec3  rimCol  = rimTint * rim * max(uSunHeight, 0.08) * rimStrength;
 
   // compose
   float diffuseStrength = mix(0.38, 0.6, 1.0 - vStalkMask);
@@ -47,7 +47,7 @@ void main() {
   lit *= dayRamp;
 
   // keep stalks from blowing out at noon; retain a warmer, more organic tone
-  lit = mix(lit * vec3(0.86, 0.9, 0.74), lit, 1.0 - vStalkMask);
+  lit = mix(lit * vec3(0.72, 0.88, 0.58), lit, 1.0 - vStalkMask);
 
   // Dramatic bloom-dependent petal self-illumination:
   // dim buds, strong lift near full bloom.
