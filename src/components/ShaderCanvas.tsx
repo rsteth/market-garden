@@ -139,7 +139,7 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
           // --- pinch zoom ---
           const dist = pinchDist(e.touches);
           if (lastPinchDist > 0) {
-            const scale = dist / lastPinchDist;
+            const scale = lastPinchDist / dist; // inverted: pinch-in zooms out, spread zooms in
             gestureZoom = clamp(gestureZoom * scale, ZOOM_HARD_MIN, ZOOM_HARD_MAX);
           }
           lastPinchDist = dist;
@@ -149,7 +149,10 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
           const rect = canvas.getBoundingClientRect();
           const dx = (mx - lastMidX) / rect.width;
           const dy = (my - lastMidY) / rect.height;
-          gestureOrbitYaw   = clamp(gestureOrbitYaw   + dx * 1.2, -ORBIT_HARD_RAD, ORBIT_HARD_RAD);
+          // Invert yaw when fingers are in the bottom half of the screen
+          const midScreenY = (my - rect.top) / rect.height;
+          const yawSign = midScreenY > 0.5 ? -1 : 1;
+          gestureOrbitYaw   = clamp(gestureOrbitYaw   + dx * 1.2 * yawSign, -ORBIT_HARD_RAD, ORBIT_HARD_RAD);
           gestureOrbitPitch = clamp(gestureOrbitPitch  - dy * 1.2, -ORBIT_HARD_RAD, ORBIT_HARD_RAD);
           lastMidX = mx; lastMidY = my;
         } else if (e.touches.length === 1 && !gestureActive) {
@@ -170,7 +173,7 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
       // mouse-wheel zoom (desktop)
       const onWheel = (e: WheelEvent) => {
         e.preventDefault();
-        const factor = 1 - e.deltaY * 0.001;
+        const factor = 1 + e.deltaY * 0.001;
         gestureZoom = clamp(gestureZoom * factor, ZOOM_HARD_MIN, ZOOM_HARD_MAX);
       };
 
