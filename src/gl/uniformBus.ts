@@ -15,6 +15,10 @@ export interface UniformState {
   params: Record<string, number>;
   /** Debug overrides from UI */
   overrides: Record<string, OverrideValue>;
+  /** Pinch-zoom factor (1 = default, <1 zoomed out, >1 zoomed in) */
+  gestureZoom: number;
+  /** Orbit offset in radians [yaw, pitch] from default camera orientation */
+  gestureOrbit: [number, number];
 }
 
 export interface UniformBus {
@@ -32,6 +36,8 @@ export function createUniformBus(): UniformBus {
     nowUtc: 0,
     params: {},
     overrides: {},
+    gestureZoom: 1,
+    gestureOrbit: [0, 0],
   };
 
   return {
@@ -45,6 +51,8 @@ export function createUniformBus(): UniformBus {
       if (partial.nowUtc !== undefined) state.nowUtc = partial.nowUtc;
       if (partial.params) Object.assign(state.params, partial.params);
       if (partial.overrides) state.overrides = partial.overrides;
+      if (partial.gestureZoom !== undefined) state.gestureZoom = partial.gestureZoom;
+      if (partial.gestureOrbit !== undefined) state.gestureOrbit = partial.gestureOrbit;
     },
   };
 }

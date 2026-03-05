@@ -76,12 +76,103 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
         pointerY = 1.0 - (clientY - rect.top) / rect.height;
       };
 
+      // ---- gesture state (pinch-zoom + orbit) ----
+      // Soft limits — preferred range the user can freely set
+      const ZOOM_SOFT_MIN = 0.5;
+      const ZOOM_SOFT_MAX = 1.2;
+      // Hard limits — how far past the soft edge you can push while touching
+      const ZOOM_HARD_MIN = 0.35;
+      const ZOOM_HARD_MAX = 1.35;
+
+      const ORBIT_SOFT_RAD = 20 * Math.PI / 180;  // ±20°
+      const ORBIT_HARD_RAD = 26 * Math.PI / 180;  // ±26° (30% overshoot)
+
+      let gestureZoom = 1;
+      let gestureOrbitYaw = 0;   // radians
+      let gestureOrbitPitch = 0; // radians
+      let gestureActive = false;
+
+      // pinch bookkeeping
+      let lastPinchDist = 0;
+      let lastMidX = 0;
+      let lastMidY = 0;
+
+      const pinchDist = (t: TouchList) => {
+        const dx = t[1].clientX - t[0].clientX;
+        const dy = t[1].clientY - t[0].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+      };
+      const pinchMid = (t: TouchList): [number, number] => [
+        (t[0].clientX + t[1].clientX) / 2,
+        (t[0].clientY + t[1].clientY) / 2,
+      ];
+
+      const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+      /** Ease value back toward [lo..hi] if it exceeds the soft range. */
+      const easeTo = (v: number, lo: number, hi: number, alpha: number) => {
+        if (v < lo) return v + (lo - v) * alpha;
+        if (v > hi) return v + (hi - v) * alpha;
+        return v;
+      };
+
       const onMouseMove  = (e: MouseEvent) => updatePointer(e.clientX, e.clientY);
       const onMouseDown  = (e: MouseEvent) => { pointerDown = true; updatePointer(e.clientX, e.clientY); };
       const onMouseUp    = () => { pointerDown = false; };
-      const onTouchMove  = (e: TouchEvent) => { e.preventDefault(); if (e.touches[0]) updatePointer(e.touches[0].clientX, e.touches[0].clientY); };
-      const onTouchStart = (e: TouchEvent) => { pointerDown = true; if (e.touches[0]) updatePointer(e.touches[0].clientX, e.touches[0].clientY); };
-      const onTouchEnd   = () => { pointerDown = false; };
+
+      const onTouchStart = (e: TouchEvent) => {
+        e.preventDefault();
+        if (e.touches.length === 2) {
+          gestureActive = true;
+          lastPinchDist = pinchDist(e.touches);
+          const [mx, my] = pinchMid(e.touches);
+          lastMidX = mx; lastMidY = my;
+        } else if (e.touches.length === 1) {
+          pointerDown = true;
+          updatePointer(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      };
+
+      const onTouchMove = (e: TouchEvent) => {
+        e.preventDefault();
+        if (e.touches.length === 2 && gestureActive) {
+          // --- pinch zoom ---
+          const dist = pinchDist(e.touches);
+          if (lastPinchDist > 0) {
+            const scale = dist / lastPinchDist;
+            gestureZoom = clamp(gestureZoom * scale, ZOOM_HARD_MIN, ZOOM_HARD_MAX);
+          }
+          lastPinchDist = dist;
+
+          // --- two-finger orbit ---
+          const [mx, my] = pinchMid(e.touches);
+          const rect = canvas.getBoundingClientRect();
+          const dx = (mx - lastMidX) / rect.width;
+          const dy = (my - lastMidY) / rect.height;
+          gestureOrbitYaw   = clamp(gestureOrbitYaw   + dx * 1.2, -ORBIT_HARD_RAD, ORBIT_HARD_RAD);
+          gestureOrbitPitch = clamp(gestureOrbitPitch  - dy * 1.2, -ORBIT_HARD_RAD, ORBIT_HARD_RAD);
+          lastMidX = mx; lastMidY = my;
+        } else if (e.touches.length === 1 && !gestureActive) {
+          updatePointer(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      };
+
+      const onTouchEnd = (e: TouchEvent) => {
+        if (e.touches.length < 2) {
+          gestureActive = false;
+          lastPinchDist = 0;
+        }
+        if (e.touches.length === 0) {
+          pointerDown = false;
+        }
+      };
+
+      // mouse-wheel zoom (desktop)
+      const onWheel = (e: WheelEvent) => {
+        e.preventDefault();
+        const factor = 1 - e.deltaY * 0.001;
+        gestureZoom = clamp(gestureZoom * factor, ZOOM_HARD_MIN, ZOOM_HARD_MAX);
+      };
 
       canvas.addEventListener('mousemove',  onMouseMove);
       canvas.addEventListener('mousedown',  onMouseDown);
@@ -89,6 +180,7 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
       canvas.addEventListener('touchmove',  onTouchMove,  { passive: false });
       canvas.addEventListener('touchstart', onTouchStart, { passive: false });
       canvas.addEventListener('touchend',   onTouchEnd);
+      canvas.addEventListener('wheel',      onWheel,      { passive: false });
 
       // ---- timing ----
       const startTime = performance.now() / 1000;
@@ -129,6 +221,14 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
         const ctrl = controlsRef.current;
         if (ctrl.paused) return;
 
+        // Rubber-band: ease back toward soft limits when not actively gesturing
+        if (!gestureActive) {
+          const snap = 1 - Math.exp(-6 * dt); // fast but smooth ~0.1s
+          gestureZoom       = easeTo(gestureZoom,       ZOOM_SOFT_MIN,  ZOOM_SOFT_MAX,  snap);
+          gestureOrbitYaw   = easeTo(gestureOrbitYaw,   -ORBIT_SOFT_RAD, ORBIT_SOFT_RAD, snap);
+          gestureOrbitPitch = easeTo(gestureOrbitPitch,  -ORBIT_SOFT_RAD, ORBIT_SOFT_RAD, snap);
+        }
+
         uniformBus.update({
           time: nowSec - startTime,
           dt,
@@ -141,6 +241,8 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
             showRegionHelpers: ctrl.showRegionHelpers ? 1 : 0,
           },
           overrides: ctrl.overrides,
+          gestureZoom,
+          gestureOrbit: [gestureOrbitYaw, gestureOrbitPitch],
         });
 
         const activePasses = new Set<string>();
@@ -162,6 +264,7 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
         canvas.removeEventListener('touchmove',  onTouchMove);
         canvas.removeEventListener('touchstart', onTouchStart);
         canvas.removeEventListener('touchend',   onTouchEnd);
+        canvas.removeEventListener('wheel',       onWheel);
         scene.destroy?.();
         regl.destroy();
       };

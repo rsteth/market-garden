@@ -106,6 +106,12 @@ export function createMarketGardenScene(): Scene {
   let viewMatrix: Mat4;
   let currentEye: Vec3 = [...EYE_DEFAULT];
 
+  // aspect-adapted base camera (recalculated on resize, then gesture applied per frame)
+  let baseEye: Vec3 = [...EYE_DEFAULT];
+  let baseCenter: Vec3 = [...CENTER];
+  let baseFov: number = FOV_DEFAULT;
+  let curAspect = 1;
+
   // resources handle
   let res: RenderResources;
 
@@ -200,12 +206,50 @@ export function createMarketGardenScene(): Scene {
         rtHalfB.resize(halfW, halfH);
         rtHalfC.resize(halfW, halfH);
 
-        const aspect = w / h;
-        const { eye, center, fov } = adaptCamera(aspect);
-        currentEye = eye;
-        viewMatrix = lookAt(currentEye, center, UP);
-        projMatrix = perspective(fov, aspect, NEAR, FAR);
+        curAspect = w / h;
+        const adapted = adaptCamera(curAspect);
+        baseEye = adapted.eye;
+        baseCenter = adapted.center;
+        baseFov = adapted.fov;
       }
+
+      // ---- gesture camera (runs every frame) ----
+      const zoom = state.gestureZoom;
+      const [orbitYaw, orbitPitch] = state.gestureOrbit;
+
+      // Zoom: interpolate eye along eye→center vector
+      const dx = baseCenter[0] - baseEye[0];
+      const dy = baseCenter[1] - baseEye[1];
+      const dz = baseCenter[2] - baseEye[2];
+      const zoomT = 1 - zoom; // zoom>1 ⇒ move toward center, zoom<1 ⇒ move away
+      currentEye = [
+        baseEye[0] + dx * zoomT,
+        baseEye[1] + dy * zoomT,
+        baseEye[2] + dz * zoomT,
+      ];
+
+      // Orbit: rotate eye around the look-target (baseCenter)
+      const cosY = Math.cos(orbitYaw),  sinY = Math.sin(orbitYaw);
+      const cosP = Math.cos(orbitPitch), sinP = Math.sin(orbitPitch);
+      let rx = currentEye[0] - baseCenter[0];
+      let ry = currentEye[1] - baseCenter[1];
+      let rz = currentEye[2] - baseCenter[2];
+      // yaw (rotate around world Y)
+      const rx2 = rx * cosY + rz * sinY;
+      const rz2 = -rx * sinY + rz * cosY;
+      rx = rx2; rz = rz2;
+      // pitch (rotate around local X / side axis)
+      const ry2 = ry * cosP - rz * sinP;
+      const rz3 = ry * sinP + rz * cosP;
+      ry = ry2; rz = rz3;
+      currentEye = [
+        baseCenter[0] + rx,
+        baseCenter[1] + ry,
+        baseCenter[2] + rz,
+      ];
+
+      viewMatrix = lookAt(currentEye, baseCenter, UP);
+      projMatrix = perspective(baseFov, curAspect, NEAR, FAR);
 
       // ---- treatment from params ----
       treatment = (state.params.treatment ?? 0) | 0;
