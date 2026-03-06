@@ -78,10 +78,10 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
 
       // ---- gesture state (pinch-zoom + orbit) ----
       // Soft limits — preferred range the user can freely set
-      const ZOOM_SOFT_MIN = 0.2;
+      const ZOOM_SOFT_MIN = 0.4;
       const ZOOM_SOFT_MAX = 1.7;
       // Hard limits — how far past the soft edge you can push while touching
-      const ZOOM_HARD_MIN = 0.08;
+      const ZOOM_HARD_MIN = 0.6;
       const ZOOM_HARD_MAX = 2.05;
 
       const ORBIT_SOFT_RAD = 40 * Math.PI / 180;  // ±40°
