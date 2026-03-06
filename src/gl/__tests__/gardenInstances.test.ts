@@ -10,6 +10,8 @@ describe('generateInstances', () => {
     expect(data.positions.length).toBe(10_000 * 3);
     expect(data.scales.length).toBe(10_000);
     expect(data.seeds.length).toBe(10_000);
+    expect(data.kinds.length).toBe(10_000);
+    expect(data.heightScales.length).toBe(10_000);
   });
 
   it('accepts a custom count', () => {
@@ -28,9 +30,8 @@ describe('generateInstances', () => {
 
   it('positions are within garden radius + jitter margin', () => {
     const gardenRadius = 22;
-    const maxRadialOvershoot = gardenRadius * 0.06; // r is clamped to 106% of radius
-    const maxCartesianJitter = Math.hypot(0.175, 0.175); // x/z jitter is ±0.175 each axis
-    const maxR = gardenRadius + maxRadialOvershoot + maxCartesianJitter;
+    const maxRadialOvershoot = gardenRadius * 0.08;
+    const maxR = gardenRadius + maxRadialOvershoot;
     for (let i = 0; i < data.count; i++) {
       const x = data.positions[i * 3];
       const z = data.positions[i * 3 + 2];
@@ -40,11 +41,28 @@ describe('generateInstances', () => {
 
   // ---- scale constraints ----
 
-  it('scales are in [0.65, 1.35]', () => {
+  it('scales are in [0.65, 1.56]', () => {
     for (let i = 0; i < data.count; i++) {
       expect(data.scales[i]).toBeGreaterThanOrEqual(0.65);
-      expect(data.scales[i]).toBeLessThanOrEqual(1.35);
+      expect(data.scales[i]).toBeLessThanOrEqual(1.56);
     }
+  });
+
+  // ---- kind / height constraints ----
+
+  it('contains base flowers and four tall flower kinds', () => {
+    const seen = new Set<number>();
+    for (let i = 0; i < data.count; i++) {
+      seen.add(data.kinds[i]);
+      expect(data.kinds[i]).toBeGreaterThanOrEqual(0);
+      expect(data.kinds[i]).toBeLessThanOrEqual(4);
+      expect(data.heightScales[i]).toBeGreaterThan(0.9);
+    }
+    expect(seen.has(0)).toBe(true);
+    expect(seen.has(1)).toBe(true);
+    expect(seen.has(2)).toBe(true);
+    expect(seen.has(3)).toBe(true);
+    expect(seen.has(4)).toBe(true);
   });
 
   // ---- seed constraints ----
@@ -64,20 +82,34 @@ describe('generateInstances', () => {
     expect(data2.positions[99]).toBe(data.positions[99]);
     expect(data2.scales[500]).toBe(data.scales[500]);
     expect(data2.seeds[9999]).toBe(data.seeds[9999]);
+    expect(data2.kinds[9999]).toBe(data.kinds[9999]);
   });
 
   // ---- distribution ----
 
-  it('first instance is near the center (Fibonacci spiral)', () => {
+  it('first base instance is near the center (Fibonacci spiral)', () => {
     const x = data.positions[0];
     const z = data.positions[2];
     expect(Math.sqrt(x * x + z * z)).toBeLessThan(2);
   });
 
-  it('last instances are near the rim', () => {
-    const last = data.count - 1;
-    const x = data.positions[last * 3];
-    const z = data.positions[last * 3 + 2];
-    expect(Math.sqrt(x * x + z * z)).toBeGreaterThan(15);
+  it('tall flowers are clustered near control regions', () => {
+    const tallIndices: number[] = [];
+    for (let i = 0; i < data.count; i++) {
+      if (data.kinds[i] > 0.5) tallIndices.push(i);
+    }
+
+    expect(tallIndices.length).toBeGreaterThan(1000);
+
+    let nearCore = 0;
+    for (const i of tallIndices) {
+      const x = data.positions[i * 3];
+      const z = data.positions[i * 3 + 2];
+      // region centers are around a ring around radius ~= 13
+      const radial = Math.hypot(x, z);
+      if (radial > 8 && radial < 18) nearCore++;
+    }
+
+    expect(nearCore / tallIndices.length).toBeGreaterThan(0.8);
   });
 });

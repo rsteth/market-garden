@@ -242,6 +242,11 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
           params: {
             treatment: ctrl.treatment,
             showRegionHelpers: ctrl.showRegionHelpers ? 1 : 0,
+            showBaseFlowers: ctrl.showBaseFlowers ? 1 : 0,
+            showTallFlowerVariant1: ctrl.showTallFlowerVariant1 ? 1 : 0,
+            showTallFlowerVariant2: ctrl.showTallFlowerVariant2 ? 1 : 0,
+            showTallFlowerVariant3: ctrl.showTallFlowerVariant3 ? 1 : 0,
+            showTallFlowerVariant4: ctrl.showTallFlowerVariant4 ? 1 : 0,
           },
           overrides: ctrl.overrides,
           gestureZoom,

@@ -23,6 +23,11 @@ export interface Controls {
   showGodrays: boolean;
   showComposite: boolean;
   showRegionHelpers: boolean;
+  showBaseFlowers: boolean;
+  showTallFlowerVariant1: boolean;
+  showTallFlowerVariant2: boolean;
+  showTallFlowerVariant3: boolean;
+  showTallFlowerVariant4: boolean;
   treatment: number; // 0 cinematic, 1 clean
   overrides: {
     windStrength: OverrideControl;
@@ -58,6 +63,11 @@ const INITIAL_CONTROLS: Controls = {
   showGodrays: true,
   showComposite: true,
   showRegionHelpers: false,
+  showBaseFlowers: true,
+  showTallFlowerVariant1: true,
+  showTallFlowerVariant2: true,
+  showTallFlowerVariant3: true,
+  showTallFlowerVariant4: true,
   treatment: 0,
   overrides: {
     windStrength: { active: false, value: 0.3 },
