@@ -84,8 +84,8 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
       const ZOOM_HARD_MIN = 0.6;
       const ZOOM_HARD_MAX = 2.05;
 
-      const ORBIT_SOFT_RAD = 40 * Math.PI / 180;  // ±40°
-      const ORBIT_HARD_RAD = 55 * Math.PI / 180;  // ±55°
+      const ORBIT_SOFT_RAD = 35 * Math.PI / 180;  // ±40°
+      const ORBIT_HARD_RAD = 45 * Math.PI / 180;  // ±55°
 
       let gestureZoom = 1;
       let gestureOrbitYaw = 0;   // radians
