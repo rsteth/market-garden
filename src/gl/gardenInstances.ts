@@ -20,6 +20,9 @@ const BASE_FLOWER_SHARE = 0.82;
 const PI2 = Math.PI * 2;
 
 const TALL_FLOWER_HEIGHTS = [1.55, 1.9, 1.7, 1.8] as const;
+const TALL_CLUSTER_SIGMA = 2.8;
+const TALL_CLUSTER_NOISE = 0.34;
+const TALL_CLUSTER_OUTWARD_PUSH = 1.7;
 
 function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
@@ -77,14 +80,19 @@ export function generateInstances(
     const regionIdx = idx % regionCenters.length;
     const [cx, cz] = regionCenters[regionIdx];
 
-    // Gaussian radial sample with small angle noise for bunching.
+    // Gaussian radial sample with a wider spread and directional push away from each center.
     const u1 = Math.max(0.0001, rng());
     const u2 = rng();
-    const radial = Math.sqrt(-2 * Math.log(u1)) * 1.9;
+    const radial = Math.sqrt(-2 * Math.log(u1)) * TALL_CLUSTER_SIGMA;
     const theta = u2 * PI2;
 
-    let x = cx + Math.cos(theta) * radial + (rng() - 0.5) * 0.24;
-    let z = cz + Math.sin(theta) * radial + (rng() - 0.5) * 0.24;
+    const centerLen = Math.max(0.001, Math.hypot(cx, cz));
+    const dirX = cx / centerLen;
+    const dirZ = cz / centerLen;
+    const outwardBias = Math.pow(rng(), 1.4) * TALL_CLUSTER_OUTWARD_PUSH;
+
+    let x = cx + Math.cos(theta) * radial + dirX * outwardBias + (rng() - 0.5) * TALL_CLUSTER_NOISE;
+    let z = cz + Math.sin(theta) * radial + dirZ * outwardBias + (rng() - 0.5) * TALL_CLUSTER_NOISE;
 
     const dist = Math.hypot(x, z);
     const maxDist = gardenRadius * 1.08;

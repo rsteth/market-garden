@@ -31,7 +31,7 @@ describe('generateInstances', () => {
   it('positions are within garden radius + jitter margin', () => {
     const gardenRadius = 22;
     const maxRadialOvershoot = gardenRadius * 0.08;
-    const maxR = gardenRadius + maxRadialOvershoot;
+    const maxR = gardenRadius + maxRadialOvershoot + 0.001;
     for (let i = 0; i < data.count; i++) {
       const x = data.positions[i * 3];
       const z = data.positions[i * 3 + 2];
@@ -93,7 +93,7 @@ describe('generateInstances', () => {
     expect(Math.sqrt(x * x + z * z)).toBeLessThan(2);
   });
 
-  it('tall flowers are clustered near control regions', () => {
+  it('tall flowers remain region-clustered but spread farther from cluster centers', () => {
     const tallIndices: number[] = [];
     for (let i = 0; i < data.count; i++) {
       if (data.kinds[i] > 0.5) tallIndices.push(i);
@@ -101,15 +101,32 @@ describe('generateInstances', () => {
 
     expect(tallIndices.length).toBeGreaterThan(1000);
 
-    let nearCore = 0;
+    const regionCenters: [number, number][] = Array.from({ length: 7 }, (_, i) => {
+      const angle = i * ((Math.PI * 2) / 7) + 0.3;
+      const radius = (11 + 2 * Math.sin(i * 1.7)) * 1.2;
+      return [Math.cos(angle) * radius, Math.sin(angle) * radius];
+    });
+
+    let nearRing = 0;
+    let meanNearestRegionDist = 0;
     for (const i of tallIndices) {
       const x = data.positions[i * 3];
       const z = data.positions[i * 3 + 2];
-      // region centers are around a ring around radius ~= 13
+
       const radial = Math.hypot(x, z);
-      if (radial > 8 && radial < 18) nearCore++;
+      if (radial > 7 && radial < 20) nearRing++;
+
+      let nearest = Number.POSITIVE_INFINITY;
+      for (const [cx, cz] of regionCenters) {
+        nearest = Math.min(nearest, Math.hypot(x - cx, z - cz));
+      }
+      meanNearestRegionDist += nearest;
     }
 
-    expect(nearCore / tallIndices.length).toBeGreaterThan(0.8);
+    meanNearestRegionDist /= tallIndices.length;
+
+    expect(nearRing / tallIndices.length).toBeGreaterThan(0.7);
+    expect(meanNearestRegionDist).toBeGreaterThan(2.2);
+    expect(meanNearestRegionDist).toBeLessThan(5.8);
   });
 });
