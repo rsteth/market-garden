@@ -78,10 +78,10 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
 
       // ---- gesture state (pinch-zoom + orbit) ----
       // Soft limits — preferred range the user can freely set
-      const ZOOM_SOFT_MIN = 0.5;
+      const ZOOM_SOFT_MIN = 0.3;
       const ZOOM_SOFT_MAX = 1.2;
       // Hard limits — how far past the soft edge you can push while touching
-      const ZOOM_HARD_MIN = 0.35;
+      const ZOOM_HARD_MIN = 0.2;
       const ZOOM_HARD_MAX = 1.35;
 
       const ORBIT_SOFT_RAD = 20 * Math.PI / 180;  // ±20°
@@ -96,6 +96,11 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
       let lastPinchDist = 0;
       let lastMidX = 0;
       let lastMidY = 0;
+
+      // single-finger orbit bookkeeping
+      let lastSingleX = 0;
+      let lastSingleY = 0;
+      let singleFingerActive = false;
 
       const pinchDist = (t: TouchList) => {
         const dx = t[1].clientX - t[0].clientX;
@@ -124,11 +129,15 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
         e.preventDefault();
         if (e.touches.length === 2) {
           gestureActive = true;
+          singleFingerActive = false;
           lastPinchDist = pinchDist(e.touches);
           const [mx, my] = pinchMid(e.touches);
           lastMidX = mx; lastMidY = my;
         } else if (e.touches.length === 1) {
           pointerDown = true;
+          singleFingerActive = true;
+          lastSingleX = e.touches[0].clientX;
+          lastSingleY = e.touches[0].clientY;
           updatePointer(e.touches[0].clientX, e.touches[0].clientY);
         }
       };
@@ -144,18 +153,17 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
           }
           lastPinchDist = dist;
 
-          // --- two-finger orbit ---
           const [mx, my] = pinchMid(e.touches);
-          const rect = canvas.getBoundingClientRect();
-          const dx = (mx - lastMidX) / rect.width;
-          const dy = (my - lastMidY) / rect.height;
-          // Invert yaw when fingers are in the bottom half of the screen
-          const midScreenY = (my - rect.top) / rect.height;
-          const yawSign = midScreenY > 0.5 ? -1 : 1;
-          gestureOrbitYaw   = clamp(gestureOrbitYaw   + dx * 1.2 * yawSign, -ORBIT_HARD_RAD, ORBIT_HARD_RAD);
-          gestureOrbitPitch = clamp(gestureOrbitPitch  - dy * 1.2, -ORBIT_HARD_RAD, ORBIT_HARD_RAD);
           lastMidX = mx; lastMidY = my;
-        } else if (e.touches.length === 1 && !gestureActive) {
+        } else if (e.touches.length === 1 && singleFingerActive) {
+          // --- single-finger orbit ---
+          const rect = canvas.getBoundingClientRect();
+          const dx = (e.touches[0].clientX - lastSingleX) / rect.width;
+          const dy = (e.touches[0].clientY - lastSingleY) / rect.height;
+          gestureOrbitYaw   = clamp(gestureOrbitYaw   + dx * 1.5, -ORBIT_HARD_RAD, ORBIT_HARD_RAD);
+          gestureOrbitPitch = clamp(gestureOrbitPitch  - dy * 1.5, -ORBIT_HARD_RAD, ORBIT_HARD_RAD);
+          lastSingleX = e.touches[0].clientX;
+          lastSingleY = e.touches[0].clientY;
           updatePointer(e.touches[0].clientX, e.touches[0].clientY);
         }
       };
@@ -167,6 +175,7 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
         }
         if (e.touches.length === 0) {
           pointerDown = false;
+          singleFingerActive = false;
         }
       };
 
