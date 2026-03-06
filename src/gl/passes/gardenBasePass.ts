@@ -4,7 +4,7 @@
 
 import type REGL from 'regl';
 import type { FlowerMesh } from '../meshFlower';
-import type { InstanceData } from '../gardenInstances';
+import type { GardenInstanceGroups, InstanceData } from '../gardenInstances';
 import gardenVert from '../shaders/gardenBase.vert';
 import gardenFrag from '../shaders/gardenBase.frag';
 
@@ -165,26 +165,26 @@ export interface GardenBaseDrawProps {
 export function createGardenBasePass(
   regl: REGL.Regl,
   mesh: FlowerMesh,
-  instances: InstanceData,
+  instances: GardenInstanceGroups,
 ) {
   const regionIndices = regl.buffer([0, 1, 2, 3, 4, 5, 6]);
 
-  // ---- flower draw commands ----
-  const drawStalks: Draw = regl({
+  const createFlowerDraw = (instanceSet: InstanceData, stalkOnly: number, family: number): Draw => regl({
     vert: gardenVert,
     frag: gardenFrag,
     attributes: {
-      aPosition:     { buffer: regl.buffer(mesh.positions),  size: 3 },
-      aNormal:       { buffer: regl.buffer(mesh.normals),    size: 3 },
-      aPartId:       { buffer: regl.buffer(mesh.partIds),    size: 1 },
-      aUAlong:       { buffer: regl.buffer(mesh.uAlongs),    size: 1 },
-      aURadial:      { buffer: regl.buffer(mesh.uRadials),   size: 1 },
-      aInstancePos:  { buffer: regl.buffer(instances.positions), size: 3, divisor: 1 },
-      aInstanceScale:{ buffer: regl.buffer(instances.scales),    size: 1, divisor: 1 },
-      aInstanceSeed: { buffer: regl.buffer(instances.seeds),     size: 1, divisor: 1 },
+      aPosition:      { buffer: regl.buffer(mesh.positions), size: 3 },
+      aNormal:        { buffer: regl.buffer(mesh.normals), size: 3 },
+      aPartId:        { buffer: regl.buffer(mesh.partIds), size: 1 },
+      aUAlong:        { buffer: regl.buffer(mesh.uAlongs), size: 1 },
+      aURadial:       { buffer: regl.buffer(mesh.uRadials), size: 1 },
+      aInstancePos:   { buffer: regl.buffer(instanceSet.positions), size: 3, divisor: 1 },
+      aInstanceScale: { buffer: regl.buffer(instanceSet.scales), size: 1, divisor: 1 },
+      aInstanceSeed:  { buffer: regl.buffer(instanceSet.seeds), size: 1, divisor: 1 },
+      aInstanceSpecies: { buffer: regl.buffer(instanceSet.species), size: 1, divisor: 1 },
     },
     elements: regl.elements({ data: mesh.indices, type: 'uint16' }),
-    instances: instances.count,
+    instances: instanceSet.count,
     uniforms: {
       uProjection:  regl.prop('projection'  as never),
       uView:        regl.prop('view'        as never),
@@ -210,61 +210,20 @@ export function createGardenBasePass(
       uRegionOverrideValueA:      regl.prop('regionOverrideValueA'      as never),
       uRegionOverrideValueB:      regl.prop('regionOverrideValueB'      as never),
       uCameraPos:   regl.prop('cameraPos'   as never),
-      uDrawStalkOnly: 1,
-    },
-    framebuffer: regl.prop('framebuffer' as never),
-    depth: { enable: true, mask: true },
-    cull: { enable: false },
-    blend: { enable: false },
-  }) as unknown as Draw;
-
-  const drawFlowers: Draw = regl({
-    vert: gardenVert,
-    frag: gardenFrag,
-    attributes: {
-      aPosition:     { buffer: regl.buffer(mesh.positions),  size: 3 },
-      aNormal:       { buffer: regl.buffer(mesh.normals),    size: 3 },
-      aPartId:       { buffer: regl.buffer(mesh.partIds),    size: 1 },
-      aUAlong:       { buffer: regl.buffer(mesh.uAlongs),    size: 1 },
-      aURadial:      { buffer: regl.buffer(mesh.uRadials),   size: 1 },
-      aInstancePos:  { buffer: regl.buffer(instances.positions), size: 3, divisor: 1 },
-      aInstanceScale:{ buffer: regl.buffer(instances.scales),    size: 1, divisor: 1 },
-      aInstanceSeed: { buffer: regl.buffer(instances.seeds),     size: 1, divisor: 1 },
-    },
-    elements: regl.elements({ data: mesh.indices, type: 'uint16' }),
-    instances: instances.count,
-    uniforms: {
-      uProjection:  regl.prop('projection'  as never),
-      uView:        regl.prop('view'        as never),
-      uDataTexture: regl.prop('dataTexture' as never),
-      uTime:        regl.prop('time'        as never),
-      uSunDir:      regl.prop('sunDir'      as never),
-      uSunHeight:   regl.prop('sunHeight'   as never),
-      uWindStrength:regl.prop('windStrength' as never),
-      uGustiness:   regl.prop('gustiness'   as never),
-      uDayPhase:    regl.prop('dayPhase'    as never),
-      uOverrideBloomTargetActive: regl.prop('overrideBloomTargetActive' as never),
-      uOverrideBloomTargetValue:  regl.prop('overrideBloomTargetValue'  as never),
-      uOverrideAgitationActive:   regl.prop('overrideAgitationActive'   as never),
-      uOverrideAgitationValue:    regl.prop('overrideAgitationValue'    as never),
-      uOverrideMicroTwitchActive: regl.prop('overrideMicroTwitchActive' as never),
-      uOverrideMicroTwitchValue:  regl.prop('overrideMicroTwitchValue'  as never),
-      uOverrideColorSeedActive:   regl.prop('overrideColorSeedActive'   as never),
-      uOverrideColorSeedValue:    regl.prop('overrideColorSeedValue'    as never),
-      uOverrideSlowBiasActive:    regl.prop('overrideSlowBiasActive'    as never),
-      uOverrideSlowBiasValue:     regl.prop('overrideSlowBiasValue'     as never),
-      uRegionOverrideActiveA:     regl.prop('regionOverrideActiveA'     as never),
-      uRegionOverrideActiveB:     regl.prop('regionOverrideActiveB'     as never),
-      uRegionOverrideValueA:      regl.prop('regionOverrideValueA'      as never),
-      uRegionOverrideValueB:      regl.prop('regionOverrideValueB'      as never),
-      uCameraPos:   regl.prop('cameraPos'   as never),
-      uDrawStalkOnly: 0,
+      uDrawStalkOnly: stalkOnly,
+      uFlowerFamily: family,
     },
     framebuffer: regl.prop('framebuffer' as never),
     depth: { enable: true, mask: true, func: 'lequal' },
     cull: { enable: false },
     blend: { enable: false },
   }) as unknown as Draw;
+
+  // ---- flower draw commands ----
+  const drawExistingStalks = createFlowerDraw(instances.existing, 1, 0);
+  const drawTallStalks = createFlowerDraw(instances.tall, 1, 1);
+  const drawExistingFlowers = createFlowerDraw(instances.existing, 0, 0);
+  const drawTallFlowers = createFlowerDraw(instances.tall, 0, 1);
 
   // ---- fullscreen backdrop (sky + implied ground GI) ----
   const drawBackdrop: Draw = regl({
@@ -316,8 +275,10 @@ export function createGardenBasePass(
         framebuffer: p.framebuffer,
       });
       drawBackdrop(p as unknown as Record<string, unknown>);
-      drawStalks(p as unknown as Record<string, unknown>);
-      drawFlowers(p as unknown as Record<string, unknown>);
+      drawExistingStalks(p as unknown as Record<string, unknown>);
+      drawTallStalks(p as unknown as Record<string, unknown>);
+      drawExistingFlowers(p as unknown as Record<string, unknown>);
+      drawTallFlowers(p as unknown as Record<string, unknown>);
       drawRegionHelpers(p as unknown as Record<string, unknown>);
     },
   };

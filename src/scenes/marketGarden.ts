@@ -17,7 +17,7 @@ import type { RenderTarget } from '@/gl/renderTarget';
 import { perspective, lookAt, projectDirToScreen } from '@/gl/camera';
 import type { Mat4, Vec3 } from '@/gl/camera';
 import { generateFlowerMesh } from '@/gl/meshFlower';
-import { generateInstances } from '@/gl/gardenInstances';
+import { generateGardenInstanceGroups } from '@/gl/gardenInstances';
 import { fetchMarketData, uploadMarketTexture, extractEnvironment, calculateSun } from '@/gl/marketData';
 import { createRenderTarget } from '@/gl/renderTarget';
 
@@ -162,7 +162,7 @@ export function createMarketGardenScene(): Scene {
 
       // ---- mesh + instances ----
       const mesh = generateFlowerMesh();
-      const instances = generateInstances(10_000);
+      const instances = generateGardenInstanceGroups(10_000, 1_900);
 
       // ---- passes ----
       basePass      = createGardenBasePass(regl, mesh, instances);

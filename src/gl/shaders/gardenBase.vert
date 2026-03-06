@@ -11,6 +11,7 @@ attribute float aURadial;  // normalised petal angle
 attribute vec3 aInstancePos;
 attribute float aInstanceScale;
 attribute float aInstanceSeed;
+attribute float aInstanceSpecies;
 
 // ---- uniforms ----
 uniform mat4 uProjection;
@@ -37,6 +38,7 @@ uniform vec4  uRegionOverrideActiveA;
 uniform vec4  uRegionOverrideActiveB;
 uniform vec4  uRegionOverrideValueA;
 uniform vec4  uRegionOverrideValueB;
+uniform float uFlowerFamily;
 
 // ---- varyings ----
 varying vec3  vColor;
@@ -143,6 +145,9 @@ void main() {
   if (uOverrideSlowBiasActive > 0.5) slowBias = uOverrideSlowBiasValue;
 
   float seedVar = hash11(aInstanceSeed * 100.0);
+  float species = floor(aInstanceSpecies + 0.5);
+  float speciesNorm = species / 3.0;
+  float isTall = step(0.5, uFlowerFamily);
 
   // ---- wind ----
   vec2 windSample = aInstancePos.xz * 0.15 + uTime * vec2(0.3, 0.2);
@@ -155,6 +160,11 @@ void main() {
   float tipBend = mix(0.08, 0.58, uWindStrength);
   vec2 tipOff = vec2(windBendX, windBendZ) * tipBend;
 
+  // ---- family-specific structure ----
+  float tallHeight = mix(1.45, 2.25, speciesNorm);
+  float tallStemThin = mix(1.0, 0.72, isTall);
+  float tallHeadScale = mix(1.0, 0.85 + speciesNorm * 0.55, isTall);
+
   // ---- deformation ----
   if (aPartId < 0.5) {
     // == STALK ==
@@ -164,6 +174,13 @@ void main() {
     float twitch = sin(uTime * 9.0 + aInstanceSeed * 200.0)
                  * abs(microTwitch) * (0.003 + uGustiness * 0.02) * aUAlong;
     pos.x += twitch;
+
+    if (isTall > 0.5) {
+      pos.y *= tallHeight;
+      pos.x *= tallStemThin;
+      pos.z *= tallStemThin;
+    }
+
     norm.x += windBendX * aUAlong * 0.3;
     norm.z += windBendZ * aUAlong * 0.3;
     norm = normalize(norm);
@@ -172,6 +189,14 @@ void main() {
     // head + petals both inherit stalk-tip displacement
     pos.x += tipOff.x;
     pos.z += tipOff.y;
+
+    if (isTall > 0.5) {
+      float fromHead = max(0.0, pos.y - HEAD_Y);
+      pos.y = HEAD_Y * tallHeight + fromHead * tallHeadScale;
+      pos.x *= 0.82 + speciesNorm * 0.34;
+      pos.z *= 0.82 + speciesNorm * 0.34;
+      tipOff *= 0.82;
+    }
 
     if (aPartId < 1.5) {
       // == HEAD ==
@@ -221,18 +246,34 @@ void main() {
 
   // ---- colour ----
   vec3 color;
-  if (aPartId < 0.5) {
-    color = vec3(0.045, 0.14 + aUAlong * 0.08, 0.04);
-  } else if (aPartId < 1.5) {
-    color = vec3(0.25, 0.2, 0.05);
+  if (isTall < 0.5) {
+    if (aPartId < 0.5) {
+      color = vec3(0.045, 0.14 + aUAlong * 0.08, 0.04);
+    } else if (aPartId < 1.5) {
+      color = vec3(0.25, 0.2, 0.05);
+    } else {
+      float hueWarm = fract(0.02 + colorSeed * 0.18 + seedVar * 0.08);
+      float hueBlue = fract(0.54 + colorSeed * 0.14 + seedVar * 0.10);
+      float useBlue = step(0.72, hash11(aInstanceSeed * 211.3 + colorSeed * 97.1));
+      float hue = mix(hueWarm, hueBlue, useBlue);
+      float sat = 0.72 + slowBias * 0.25;
+      float val = 0.48 + bloomTarget * 0.44;
+      color = hsv2rgb(vec3(hue, sat, val));
+    }
   } else {
-    float hueWarm = fract(0.02 + colorSeed * 0.18 + seedVar * 0.08);
-    float hueBlue = fract(0.54 + colorSeed * 0.14 + seedVar * 0.10);
-    float useBlue = step(0.72, hash11(aInstanceSeed * 211.3 + colorSeed * 97.1));
-    float hue = mix(hueWarm, hueBlue, useBlue);
-    float sat = 0.72 + slowBias * 0.25;
-    float val = 0.48 + bloomTarget * 0.44;
-    color = hsv2rgb(vec3(hue, sat, val));
+    if (aPartId < 0.5) {
+      color = mix(vec3(0.07, 0.22, 0.08), vec3(0.06, 0.17, 0.07), speciesNorm);
+      color *= 0.92 + aUAlong * 0.20;
+    } else if (aPartId < 1.5) {
+      float coreShade = 0.45 + speciesNorm * 0.25;
+      color = mix(vec3(0.96), vec3(0.32, 0.12, 0.46), coreShade);
+    } else {
+      float petalT = clamp(0.12 + aUAlong * 0.78 + speciesNorm * 0.12 + (1.0 - bloomTarget) * 0.18, 0.0, 1.0);
+      vec3 white = vec3(0.98, 0.98, 1.0);
+      vec3 purpleDeep = vec3(0.20, 0.05, 0.32);
+      color = mix(white, purpleDeep, petalT);
+      color *= 0.92 + 0.14 * hash11(aInstanceSeed * 371.17 + aURadial * 91.0);
+    }
   }
 
   // ---- glow mask (encoded in alpha) ----
