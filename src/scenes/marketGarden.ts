@@ -347,6 +347,18 @@ export function createMarketGardenScene(): Scene {
           ],
           resolution: state.resolution,
           showRegionHelpers: state.params.showRegionHelpers ?? 0,
+          flowerVariantMaskA: [
+            state.params.showBaseFlowers ?? 1,
+            state.params.showTallFlowerVariant1 ?? 1,
+            state.params.showTallFlowerVariant2 ?? 1,
+            state.params.showTallFlowerVariant3 ?? 1,
+          ],
+          flowerVariantMaskB: [
+            state.params.showTallFlowerVariant4 ?? 1,
+            1,
+            1,
+            1,
+          ],
         });
       }
 

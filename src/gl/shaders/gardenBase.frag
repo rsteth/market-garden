@@ -7,6 +7,7 @@ varying float vGlowMask;
 varying float vStalkMask;
 varying float vPetalMask;
 varying float vBloomStage;
+varying float vVariantVisible;
 
 uniform vec3  uSunDir;
 uniform float uSunHeight;
@@ -16,6 +17,8 @@ uniform float uDrawStalkOnly;
 void main() {
   vec3 N = normalize(vNormal);
   vec3 V = normalize(uCameraPos - vWorldPos);
+
+  if (vVariantVisible < 0.5) discard;
 
   if (uDrawStalkOnly > 0.5) {
     if (vStalkMask < 0.5) discard;

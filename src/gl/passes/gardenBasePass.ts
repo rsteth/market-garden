@@ -160,6 +160,8 @@ export interface GardenBaseDrawProps {
   regionOverrideValueB: [number, number, number, number];
   resolution: [number, number];
   showRegionHelpers: number;
+  flowerVariantMaskA: [number, number, number, number];
+  flowerVariantMaskB: [number, number, number, number];
 }
 
 export function createGardenBasePass(
@@ -182,6 +184,8 @@ export function createGardenBasePass(
       aInstancePos:  { buffer: regl.buffer(instances.positions), size: 3, divisor: 1 },
       aInstanceScale:{ buffer: regl.buffer(instances.scales),    size: 1, divisor: 1 },
       aInstanceSeed: { buffer: regl.buffer(instances.seeds),     size: 1, divisor: 1 },
+      aInstanceKind: { buffer: regl.buffer(instances.kinds),     size: 1, divisor: 1 },
+      aInstanceHeightScale: { buffer: regl.buffer(instances.heightScales), size: 1, divisor: 1 },
     },
     elements: regl.elements({ data: mesh.indices, type: 'uint16' }),
     instances: instances.count,
@@ -210,6 +214,8 @@ export function createGardenBasePass(
       uRegionOverrideValueA:      regl.prop('regionOverrideValueA'      as never),
       uRegionOverrideValueB:      regl.prop('regionOverrideValueB'      as never),
       uCameraPos:   regl.prop('cameraPos'   as never),
+      uFlowerVariantMaskA: regl.prop('flowerVariantMaskA' as never),
+      uFlowerVariantMaskB: regl.prop('flowerVariantMaskB' as never),
       uDrawStalkOnly: 1,
     },
     framebuffer: regl.prop('framebuffer' as never),
@@ -230,6 +236,8 @@ export function createGardenBasePass(
       aInstancePos:  { buffer: regl.buffer(instances.positions), size: 3, divisor: 1 },
       aInstanceScale:{ buffer: regl.buffer(instances.scales),    size: 1, divisor: 1 },
       aInstanceSeed: { buffer: regl.buffer(instances.seeds),     size: 1, divisor: 1 },
+      aInstanceKind: { buffer: regl.buffer(instances.kinds),     size: 1, divisor: 1 },
+      aInstanceHeightScale: { buffer: regl.buffer(instances.heightScales), size: 1, divisor: 1 },
     },
     elements: regl.elements({ data: mesh.indices, type: 'uint16' }),
     instances: instances.count,
@@ -258,6 +266,8 @@ export function createGardenBasePass(
       uRegionOverrideValueA:      regl.prop('regionOverrideValueA'      as never),
       uRegionOverrideValueB:      regl.prop('regionOverrideValueB'      as never),
       uCameraPos:   regl.prop('cameraPos'   as never),
+      uFlowerVariantMaskA: regl.prop('flowerVariantMaskA' as never),
+      uFlowerVariantMaskB: regl.prop('flowerVariantMaskB' as never),
       uDrawStalkOnly: 0,
     },
     framebuffer: regl.prop('framebuffer' as never),

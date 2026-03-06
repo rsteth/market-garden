@@ -11,6 +11,8 @@ attribute float aURadial;  // normalised petal angle
 attribute vec3 aInstancePos;
 attribute float aInstanceScale;
 attribute float aInstanceSeed;
+attribute float aInstanceKind;
+attribute float aInstanceHeightScale;
 
 // ---- uniforms ----
 uniform mat4 uProjection;
@@ -37,6 +39,8 @@ uniform vec4  uRegionOverrideActiveA;
 uniform vec4  uRegionOverrideActiveB;
 uniform vec4  uRegionOverrideValueA;
 uniform vec4  uRegionOverrideValueB;
+uniform vec4  uFlowerVariantMaskA;
+uniform vec4  uFlowerVariantMaskB;
 
 // ---- varyings ----
 varying vec3  vColor;
@@ -46,6 +50,7 @@ varying float vGlowMask;
 varying float vStalkMask;
 varying float vPetalMask;
 varying float vBloomStage;
+varying float vVariantVisible;
 
 // ---- constants ----
 const float PI = 3.14159265;
@@ -97,6 +102,22 @@ float regionInfluence(int i) {
   return mix(1.0, uRegionOverrideValueB.z, uRegionOverrideActiveB.z);
 }
 
+float tallFlowerMask(float kind) {
+  return step(0.5, kind);
+}
+
+float variantVisible(float kind) {
+  if (kind < 0.5) return uFlowerVariantMaskA.x;
+  if (kind < 1.5) return uFlowerVariantMaskA.y;
+  if (kind < 2.5) return uFlowerVariantMaskA.z;
+  if (kind < 3.5) return uFlowerVariantMaskA.w;
+  return uFlowerVariantMaskB.x;
+}
+
+float kindBand(float kind, float center) {
+  return 1.0 - step(0.5, abs(kind - center));
+}
+
 // ---------------------------------------------------------------
 void main() {
   vec3 pos  = aPosition;
@@ -143,6 +164,13 @@ void main() {
   if (uOverrideSlowBiasActive > 0.5) slowBias = uOverrideSlowBiasValue;
 
   float seedVar = hash11(aInstanceSeed * 100.0);
+  float showVariant = variantVisible(aInstanceKind);
+  float isTallFlower = tallFlowerMask(aInstanceKind);
+  float tallness = mix(1.0, aInstanceHeightScale, isTallFlower);
+  float orchidW = kindBand(aInstanceKind, 1.0) * isTallFlower;
+  float sunflowerW = kindBand(aInstanceKind, 2.0) * isTallFlower;
+  float lilyW = kindBand(aInstanceKind, 3.0) * isTallFlower;
+  float foxgloveW = kindBand(aInstanceKind, 4.0) * isTallFlower;
 
   // ---- wind ----
   vec2 windSample = aInstancePos.xz * 0.15 + uTime * vec2(0.3, 0.2);
@@ -152,13 +180,15 @@ void main() {
   float windBendZ = sin(windPhase * 0.7 + 2.3) * (uWindStrength * 1.0) + windNoise * (uGustiness * 0.55);
 
   // stalk tip total offset
-  float tipBend = mix(0.08, 0.58, uWindStrength);
+  float tipBend = mix(0.08, 0.58, uWindStrength) * mix(1.0, 1.24, isTallFlower);
   vec2 tipOff = vec2(windBendX, windBendZ) * tipBend;
+  float stalkLean = orchidW * 0.08 + sunflowerW * 0.02 + lilyW * 0.05 + foxgloveW * 0.16;
 
   // ---- deformation ----
   if (aPartId < 0.5) {
     // == STALK ==
     float bend = pow(aUAlong, 2.0) * tipBend;
+    pos.x += stalkLean * aUAlong;
     pos.x += windBendX * bend;
     pos.z += windBendZ * bend;
     float twitch = sin(uTime * 9.0 + aInstanceSeed * 200.0)
@@ -178,6 +208,10 @@ void main() {
       float nod = sin(uTime * 2.5 + aInstanceSeed * 80.0) * uWindStrength * 0.03;
       pos.y += nod;
       pos.x += nod * 0.5;
+      float headDisk = sunflowerW * 1.9 + orchidW * 0.7 + lilyW * 0.55 + foxgloveW * 0.45;
+      float headStretch = sunflowerW * 0.35 + orchidW * 0.85 + lilyW * 1.1 + foxgloveW * 1.35;
+      pos.xz *= mix(1.0, headDisk, isTallFlower);
+      pos.y = mix(pos.y, HEAD_Y + (pos.y - HEAD_Y) * headStretch, isTallFlower);
 
     } else {
       // == PETAL ==
@@ -196,6 +230,15 @@ void main() {
       float curlAngle = agitation * aUAlong * aUAlong * 0.6;
       float totalAngle = openAngle + curlAngle;
 
+      float petalLength = 1.0 + orchidW * 0.25 + sunflowerW * 0.55 + lilyW * 0.9 + foxgloveW * 0.48;
+      float petalWidth = 1.0 + orchidW * 0.5 + sunflowerW * 1.15 - lilyW * 0.36 - foxgloveW * 0.2;
+      float cupShape = orchidW * 0.55 + lilyW * 0.15 + foxgloveW * 0.8;
+      float droop = foxgloveW * 0.55 + lilyW * 0.08;
+
+      radDist *= petalLength;
+      tanDist *= petalWidth;
+      localY += cupShape * (1.0 - aUAlong) * 0.05;
+
       vec2 rotRY  = rot2(vec2(radDist, localY), totalAngle);
       pos.xz = rotRY.x * radDir + tanDist * tanDir + tipOff;
       pos.y  = HEAD_Y + rotRY.y;
@@ -204,6 +247,7 @@ void main() {
       float flutter = sin(uTime * 7.0 + petalAngle * 3.0 + aInstanceSeed * 50.0)
                     * uGustiness * aUAlong * aUAlong * 0.015;
       pos.y += flutter;
+      pos.y -= droop * aUAlong * aUAlong * 0.18;
 
       // rotate normal by same bloom angle
       float nRadial = dot(norm.xz, radDir);
@@ -216,6 +260,7 @@ void main() {
   }
 
   // ---- scale + translate ----
+  pos.y *= tallness;
   pos *= aInstanceScale;
   pos += aInstancePos;
 
@@ -232,13 +277,22 @@ void main() {
     float hue = mix(hueWarm, hueBlue, useBlue);
     float sat = 0.72 + slowBias * 0.25;
     float val = 0.48 + bloomTarget * 0.44;
-    color = hsv2rgb(vec3(hue, sat, val));
+    vec3 basePetalColor = hsv2rgb(vec3(hue, sat, val));
+
+    float tallSpeciesT = clamp((aInstanceKind - 1.0) / 3.0, 0.0, 1.0);
+    vec3 purpleDark = vec3(0.18, 0.05, 0.29);
+    vec3 purpleBright = vec3(0.96, 0.94, 1.0);
+    float speciesShift = (tallSpeciesT - 0.5) * 0.22;
+    float gradientT = clamp(aUAlong + seedVar * 0.12 + speciesShift, 0.0, 1.0);
+    vec3 tallPetalColor = mix(purpleBright, purpleDark, gradientT);
+
+    color = mix(basePetalColor, tallPetalColor, isTallFlower);
   }
 
   // ---- glow mask (encoded in alpha) ----
   float glow = 0.0;
   if (aPartId > 1.5) {
-    glow = bloomTarget * 0.4 + dot(color, vec3(0.3, 0.5, 0.2)) * 0.3;
+    glow = bloomTarget * mix(0.4, 0.55, isTallFlower) + dot(color, vec3(0.3, 0.5, 0.2)) * 0.3;
   }
 
   // ---- output ----
@@ -249,5 +303,6 @@ void main() {
   vStalkMask = aPartId < 0.5 ? 1.0 : 0.0;
   vPetalMask = aPartId > 1.5 ? 1.0 : 0.0;
   vBloomStage = bloomTarget;
+  vVariantVisible = showVariant;
   gl_Position = uProjection * uView * vec4(pos, 1.0);
 }

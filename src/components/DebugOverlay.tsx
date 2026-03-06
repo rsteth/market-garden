@@ -101,7 +101,18 @@ export function DebugOverlay({
   const { fps, frameTime, capabilities } = debugInfo;
 
   const toggleBool = (
-    key: 'paused' | 'showGarden' | 'showBloom' | 'showGodrays' | 'showComposite' | 'showRegionHelpers',
+    key:
+      | 'paused'
+      | 'showGarden'
+      | 'showBloom'
+      | 'showGodrays'
+      | 'showComposite'
+      | 'showRegionHelpers'
+      | 'showBaseFlowers'
+      | 'showTallFlowerVariant1'
+      | 'showTallFlowerVariant2'
+      | 'showTallFlowerVariant3'
+      | 'showTallFlowerVariant4',
   ) => {
     onControlsChange((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -238,6 +249,51 @@ export function DebugOverlay({
         onClick={cycleTreatment}
       >
         treatment: {controls.treatment === 0 ? 'cinematic' : 'clean'}
+      </div>
+
+
+      <div style={sectionWrapStyle}>
+        <div style={sectionTitleStyle}>Flower variant visibility</div>
+        <label style={labelStyle}>
+          <input
+            type="checkbox"
+            checked={controls.showBaseFlowers}
+            onChange={() => toggleBool('showBaseFlowers')}
+          />
+          base flowers
+        </label>
+        <label style={labelStyle}>
+          <input
+            type="checkbox"
+            checked={controls.showTallFlowerVariant1}
+            onChange={() => toggleBool('showTallFlowerVariant1')}
+          />
+          tall variant 1 (orchid)
+        </label>
+        <label style={labelStyle}>
+          <input
+            type="checkbox"
+            checked={controls.showTallFlowerVariant2}
+            onChange={() => toggleBool('showTallFlowerVariant2')}
+          />
+          tall variant 2 (sunflower)
+        </label>
+        <label style={labelStyle}>
+          <input
+            type="checkbox"
+            checked={controls.showTallFlowerVariant3}
+            onChange={() => toggleBool('showTallFlowerVariant3')}
+          />
+          tall variant 3 (lily)
+        </label>
+        <label style={labelStyle}>
+          <input
+            type="checkbox"
+            checked={controls.showTallFlowerVariant4}
+            onChange={() => toggleBool('showTallFlowerVariant4')}
+          />
+          tall variant 4 (foxglove)
+        </label>
       </div>
 
       <div style={sectionWrapStyle}>
