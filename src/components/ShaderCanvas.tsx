@@ -79,13 +79,13 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
       // ---- gesture state (pinch-zoom + orbit) ----
       // Soft limits — preferred range the user can freely set
       const ZOOM_SOFT_MIN = 0.3;
-      const ZOOM_SOFT_MAX = 1.2;
+      const ZOOM_SOFT_MAX = 1.5;
       // Hard limits — how far past the soft edge you can push while touching
       const ZOOM_HARD_MIN = 0.2;
-      const ZOOM_HARD_MAX = 1.35;
+      const ZOOM_HARD_MAX = 1.65;
 
-      const ORBIT_SOFT_RAD = 20 * Math.PI / 180;  // ±20°
-      const ORBIT_HARD_RAD = 26 * Math.PI / 180;  // ±26° (30% overshoot)
+      const ORBIT_SOFT_RAD = 40 * Math.PI / 180;  // ±40°
+      const ORBIT_HARD_RAD = 46 * Math.PI / 180;  // ±46°
 
       let gestureZoom = 1;
       let gestureOrbitYaw = 0;   // radians
@@ -160,7 +160,10 @@ export function ShaderCanvas({ controls, onDebugInfo }: ShaderCanvasProps) {
           const rect = canvas.getBoundingClientRect();
           const dx = (e.touches[0].clientX - lastSingleX) / rect.width;
           const dy = (e.touches[0].clientY - lastSingleY) / rect.height;
-          gestureOrbitYaw   = clamp(gestureOrbitYaw   + dx * 1.5, -ORBIT_HARD_RAD, ORBIT_HARD_RAD);
+          // Invert yaw when finger is in the bottom half of the screen
+          const screenY = (e.touches[0].clientY - rect.top) / rect.height;
+          const yawSign = screenY > 0.5 ? -1 : 1;
+          gestureOrbitYaw   = clamp(gestureOrbitYaw   + dx * 1.5 * yawSign, -ORBIT_HARD_RAD, ORBIT_HARD_RAD);
           gestureOrbitPitch = clamp(gestureOrbitPitch  - dy * 1.5, -ORBIT_HARD_RAD, ORBIT_HARD_RAD);
           lastSingleX = e.touches[0].clientX;
           lastSingleY = e.touches[0].clientY;
