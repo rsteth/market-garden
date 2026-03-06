@@ -54,7 +54,7 @@ varying float vVariantVisible;
 
 // ---- constants ----
 const float PI = 3.14159265;
-const float HEAD_Y = 1.02;
+const float HEAD_Y = 1.0;
 const float HEAD_R = 0.03;
 const float REGION_SIGMA2 = 35.5556;
 
@@ -199,19 +199,18 @@ void main() {
     norm = normalize(norm);
 
   } else {
-    // head + petals both inherit stalk-tip displacement
-    pos.x += tipOff.x;
-    pos.z += tipOff.y;
-
     if (aPartId < 1.5) {
       // == HEAD ==
-      float nod = sin(uTime * 2.5 + aInstanceSeed * 80.0) * uWindStrength * 0.03;
-      pos.y += nod;
-      pos.x += nod * 0.5;
       float headDisk = sunflowerW * 1.9 + orchidW * 0.7 + lilyW * 0.55 + foxgloveW * 0.45;
       float headStretch = sunflowerW * 0.35 + orchidW * 0.85 + lilyW * 1.1 + foxgloveW * 1.35;
       pos.xz *= mix(1.0, headDisk, isTallFlower);
       pos.y = mix(pos.y, HEAD_Y + (pos.y - HEAD_Y) * headStretch, isTallFlower);
+      // inherit stalk-tip displacement after local scaling
+      pos.x += tipOff.x + stalkLean;
+      pos.z += tipOff.y;
+      float nod = sin(uTime * 2.5 + aInstanceSeed * 80.0) * uWindStrength * 0.03;
+      pos.y += nod;
+      pos.x += nod * 0.5;
 
     } else {
       // == PETAL ==
@@ -219,8 +218,8 @@ void main() {
       vec2 radDir  = vec2(cos(petalAngle), sin(petalAngle));
       vec2 tanDir  = vec2(-radDir.y, radDir.x);
 
-      // local coords relative to head centre (before stalk-tip offset)
-      vec2 localXZ  = pos.xz - tipOff;
+      // local coords relative to head centre
+      vec2 localXZ  = pos.xz;
       float radDist = dot(localXZ, radDir);
       float tanDist = dot(localXZ, tanDir);
       float localY  = pos.y - HEAD_Y;
@@ -240,7 +239,7 @@ void main() {
       localY += cupShape * (1.0 - aUAlong) * 0.05;
 
       vec2 rotRY  = rot2(vec2(radDist, localY), totalAngle);
-      pos.xz = rotRY.x * radDir + tanDist * tanDir + tipOff;
+      pos.xz = rotRY.x * radDir + tanDist * tanDir + tipOff + vec2(stalkLean, 0.0);
       pos.y  = HEAD_Y + rotRY.y;
 
       // flutter at tips
